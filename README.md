@@ -1,5 +1,7 @@
 # DropWise YYC 💧
 
+Dynamic restriction verification and local stage previews: see [RESTRICTIONS.md](RESTRICTIONS.md).
+
 **Every drop counts in Calgary.** A website that helps Calgary households track their water use during water restrictions, see official City restriction and construction dates, build better habits with neighbours, and get answers from an AI assistant.
 
 ## Hackathon prompt fit — Prompt 1: health, social connection & well-being

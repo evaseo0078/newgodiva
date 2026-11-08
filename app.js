@@ -165,23 +165,105 @@
   $("#zoomOut").addEventListener("click", () => { if (zoom > 0) { zoom--; applyZoom(); } });
 
   /* ---------- restriction status ---------- */
-  const eventsOn = (k) => C.events.filter((e) => k >= e.start && k <= e.end);
+  let restrictionStatus = readJSON("dw_verified_restrictions_v1");
+  if (!validRestrictionStatus(restrictionStatus)) restrictionStatus = null;
+  if (restrictionStatus) restrictionStatus.stale = true;
+  let currentVerificationIssue = restrictionStatus?.verificationIssue || null;
+  function validRestrictionStatus(value) {
+    return value && Number.isInteger(value.stage) && value.stage >= 0 && value.stage <= 4 &&
+      Number.isFinite(Date.parse(value.verifiedAt)) && Date.parse(value.verifiedAt) <= Date.now() + 60000 &&
+      Array.isArray(value.sources) && value.sources.length > 0 && value.sources.every(source => [
+        "https://www.calgary.ca/planning/water/bearspaw-feeder-main/water-restrictions.html",
+        "https://www.calgary.ca/water/drought.html"
+      ].includes(source));
+  }
+  const currentRules = () => window.DW_RESTRICTIONS.stages[restrictionStatus?.stage] || {
+    label: "Status unavailable", summary: "Check the official City source before using water outdoors.",
+    source: window.DW_RESTRICTIONS.source, fine: "Current applicable restriction fine is unverified.",
+    allowed: [], notAllowed: [], exceptions: [], indoorAsks: ["Conserve water while meeting drinking, hygiene and medical needs."]
+  };
+  const statusNote = () => restrictionStatus?.verifiedAt
+    ? `${restrictionStatus.stale ? "STALE — last verified" : "Verified"} ${new Date(restrictionStatus.verifiedAt).toLocaleString("en-CA", { timeZone: TZ })} (Calgary time).${restrictionStatus.stale ? " Unable to verify current status; check the City source." : ""}`
+    : "Current restriction status is unavailable. Check the official City source.";
+  const historyCalendar = window.DW_CALENDAR;
+  let historyState = readJSON("dw_restriction_history_v1") || {};
+  let historyRecords = historyCalendar ? historyCalendar.mergeRecords(historyCalendar.records, historyState.records || []) : [];
+  let guideStage = null;
+  const restrictionEvents = () => restrictionStatus ? [{
+    title: `${currentRules().label} — ${restrictionStatus.stale ? "last verified" : "verified status"}`,
+    type: restrictionStatus.stage ? "restriction" : "info",
+    start: dateKey(new Date(restrictionStatus.verifiedAt)), end: dateKey(new Date(restrictionStatus.verifiedAt)),
+    detail: `${statusNote()} This confirms status on the verification date only. Restriction start and end dates are not inferred.`,
+    source: restrictionStatus.sources?.[0] || currentRules().source
+  }] : [];
+  const historyEvent = record => ({
+    ...record, type: record.stage ? "restriction" : "info",
+    title: `${record.stage ? "Stage " + record.stage : "No Restrictions"} · ${record.status}`,
+    detail: [record.detail, record.expectedDuration, record.kind === "observation" ? "Dated observation only; effective start and end dates are not inferred." : record.end === null ? "No confirmed end date." : "Confirmed end date: " + record.end,
+      "Last source verification: " + record.verifiedAt, record.startsAt ? "Effective from: " + record.startsAt : "", record.endsAt ? "Effective until: " + record.endsAt : ""].filter(Boolean).join(" ")
+  });
+  const allEvents = () => [...C.events.filter(event => event.type !== "restriction"), ...(historyCalendar ? historyRecords.map(historyEvent) : restrictionEvents())];
+  const calendarStatus = key => historyCalendar.resolveDay(key, historyRecords, { today: todayKey(), stale: key >= todayKey() && !!restrictionStatus?.stale, conflict: currentVerificationIssue === "conflict" });
+  const eventsOn = key => {
+    if (!historyCalendar) return allEvents().filter(event => key >= event.start && key <= event.end);
+    if (!historyCalendar.validDate(key)) return [];
+    const state = calendarStatus(key);
+    return [...C.events.filter(event => event.type !== "restriction" && historyCalendar.validDate(event.start) && historyCalendar.validDate(event.end) && key >= event.start && key <= event.end),
+      ...state.records.map(record => ({ ...historyEvent(record), calendarStatus: state.status }))];
+  };
+  async function refreshRestrictions() {
+    try {
+      const response = await fetch("/api/restrictions", { cache: "no-store", signal: AbortSignal.timeout(25000) });
+      const value = await response.json();
+      currentVerificationIssue = value.verificationIssue || null;
+      if (historyCalendar && value.history) {
+        historyRecords = historyCalendar.mergeRecords(historyRecords, value.history.records || []);
+        historyState = { ...value.history, records: historyRecords };
+        try { localStorage.setItem("dw_restriction_history_v1", JSON.stringify(historyState)); } catch {}
+      }
+      if (!validRestrictionStatus(value)) throw new Error("Unverified status");
+      if (restrictionStatus && Date.parse(value.verifiedAt) < Date.parse(restrictionStatus.verifiedAt)) throw new Error("Older server snapshot");
+      restrictionStatus = { ...value, stale: value.stale || Date.now() - Date.parse(value.verifiedAt) >= 900000 };
+      try { localStorage.setItem("dw_verified_restrictions_v1", JSON.stringify(restrictionStatus)); } catch {}
+    } catch {
+      if (restrictionStatus) restrictionStatus.stale = true;
+    }
+    if (historyCalendar) {
+      const observed = historyCalendar.observation(restrictionStatus);
+      if (observed) historyRecords = historyCalendar.mergeRecords(historyRecords, [observed]);
+      historyState = { ...historyState, records: historyRecords };
+      try { localStorage.setItem("dw_restriction_history_v1", JSON.stringify(historyState)); } catch {}
+    }
+    renderStatus(); renderRules(); renderCalendar();
+  }
   function renderStatus() {
-    const pill = $("#statusPill");
-    const r = eventsOn(todayKey()).find((e) => e.type === "restriction");
-    pill.classList.toggle("active", !!r);
-    if (!r) { pill.textContent = t("status.off"); return; }
-    // "Stage 4" is underlined; hovering, focusing or tapping it shows what it means.
-    pill.innerHTML = `<span aria-hidden="true">⚠️</span> <button type="button" class="stage-term" aria-describedby="stageTip" aria-expanded="false">${esc(t("status.term"))}</button>` +
-      `<span class="pill-rest"> ${esc(t("status.rest"))}</span>` +
-      `<span id="stageTip" class="stage-tip"><strong>${esc(t("stage.tipTitle"))}</strong>${esc(t("stage.tipBody"))}` +
-      `<a href="#rulesTitle" class="stage-tip-link">${esc(t("stage.tipLink"))}</a></span>`;
-    const btn = pill.querySelector(".stage-term");
-    const setOpen = (open) => { pill.classList.toggle("tip-open", open); btn.setAttribute("aria-expanded", String(open)); };
-    btn.addEventListener("click", (e) => { e.stopPropagation(); pill.classList.remove("tip-suppress"); setOpen(!pill.classList.contains("tip-open")); });
-    pill.querySelector(".stage-tip-link").addEventListener("click", (e) => { setOpen(false); e.currentTarget.blur(); pill.classList.add("tip-suppress"); });
-    pill.addEventListener("mouseleave", () => pill.classList.remove("tip-suppress"));
-    btn.addEventListener("focus", () => pill.classList.remove("tip-suppress"));
+    const pill = $("#statusPill"), rules = currentRules();
+    pill.classList.toggle("active", restrictionStatus?.stage > 0 || !!restrictionStatus?.stale);
+    pill.innerHTML = `<button type="button" class="stage-term" aria-describedby="stageTip" aria-expanded="false">${esc(rules.label)}${restrictionStatus?.stale ? " · stale" : ""}</button>
+      <span class="pill-rest">${restrictionStatus?.stage > 0 ? " water restrictions" : ""}</span>
+      <div id="stageTip" class="stage-tip" role="region" aria-label="Restriction stage guide"><strong>${esc(rules.label)}</strong>${esc(rules.summary)}
+      <br>${esc(statusNote())}
+      <div class="stage-guide-tabs" role="group" aria-label="Browse restriction stages">${[0, 1, 2, 3, 4].map(stage => `<button type="button" data-guide-stage="${stage}" aria-pressed="${stage === (guideStage ?? restrictionStatus?.stage ?? 0)}">${stage ? "Stage " + stage : "No Restrictions"}</button>`).join("")}</div>
+      <div class="stage-guide" id="stageGuideBody"></div><a href="#rulesTitle" class="stage-tip-link">View rules and exceptions</a></div>`;
+    renderStageGuide();
+    pill.querySelector(".stage-guide-tabs").addEventListener("click", event => {
+      const tab = event.target.closest("[data-guide-stage]");
+      if (!tab) return;
+      guideStage = Number(tab.dataset.guideStage);
+      renderStageGuide();
+      pill.querySelectorAll("[data-guide-stage]").forEach(button => button.setAttribute("aria-pressed", String(Number(button.dataset.guideStage) === guideStage)));
+    });
+    const button = pill.querySelector(".stage-term");
+    button.addEventListener("click", () => { const open = pill.classList.toggle("tip-open"); button.setAttribute("aria-expanded", String(open)); });
+    pill.querySelector(".stage-tip-link").addEventListener("click", () => { pill.classList.remove("tip-open"); button.setAttribute("aria-expanded", "false"); });
+    $("#restrictionKicker").textContent = `YYC · ${rules.label}`;
+  }
+  function renderStageGuide() {
+    const rules = window.DW_RESTRICTIONS.stages[guideStage ?? restrictionStatus?.stage ?? 0];
+    const highlights = rules.highlights || { allowed: rules.allowed.slice(0, 2), notAllowed: rules.notAllowed.slice(0, 2) };
+    $("#stageGuideBody").innerHTML = `<strong>${esc(rules.label)} guide</strong><span>Browsing this guide does not change the verified current stage.</span>
+      <p>${esc(rules.summary)}</p><ul>${[...highlights.notAllowed, ...highlights.allowed].map(text => `<li>${esc(text)}</li>`).join("")}</ul>
+      <p>${esc(rules.fine)}</p><details><summary>Complete rules and legal exceptions</summary>${[...rules.notAllowed.map(text => "Not allowed: " + text), ...rules.allowed.map(text => "Allowed: " + text), ...rules.exceptions.map(text => "Exception: " + text)].map(text => `<p>${esc(text)}</p>`).join("")}</details>`;
   }
   document.addEventListener("click", (e) => { const p = $("#statusPill"); if (p && !p.contains(e.target)) { p.classList.remove("tip-open"); p.querySelector(".stage-term")?.setAttribute("aria-expanded", "false"); } });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const p = $("#statusPill"); p?.classList.remove("tip-open"); p?.querySelector(".stage-term")?.setAttribute("aria-expanded", "false"); } });
@@ -552,38 +634,39 @@
   }
 
   /* ---------- calendar ---------- */
-  let calCursor = (() => { const d = parseKey(todayKey()); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+  let calCursor = todayKey().slice(0, 7) + "-01";
   let selectedDay = todayKey();
   function renderCalendar() {
-    const y = calCursor.getFullYear(), m = calCursor.getMonth();
-    $("#calMonth").textContent = calCursor.toLocaleDateString(LOCALE[lang], { month: "long", year: "numeric" });
-    const start = new Date(y, m, 1 - new Date(y, m, 1).getDay());
-    let html = [0, 1, 2, 3, 4, 5, 6].map((i) => new Date(2026, 10, 1 + i).toLocaleDateString(LOCALE[lang], { weekday: "short" })).map((d) => `<div class="cal-dow" role="columnheader">${d}</div>`).join("");
-    for (let i = 0; i < 42; i++) {
-      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), k = keyOf(d);
-      const evs = eventsOn(k);
-      const used = dayTotal(k), b = budget();
-      const dot = used && b ? `<i class="dot ${used > b ? "over" : "ok"}" title="${used > b ? "Over goal" : "Goal met"}"></i>` : "";
-      const evHtml = evs.map((e) => {
-        const first = k === e.start || d.getDay() === 0;
-        return `<span class="ev ${e.type} ${first ? "" : "cont"}">${first ? esc(e.title) : ""}</span>`;
+    const days = historyCalendar.monthGrid(calCursor);
+    if (!days.length) { $("#calendar").innerHTML = "<p>Date unavailable</p>"; return; }
+    $("#calMonth").textContent = new Date(calCursor + "T12:00:00Z").toLocaleDateString(LOCALE[lang], { month: "long", year: "numeric", timeZone: TZ });
+    let html = days.slice(0, 7).map(day => `<div class="cal-dow" role="columnheader">${esc(new Date(day.key + "T12:00:00Z").toLocaleDateString(LOCALE[lang], { weekday: "short", timeZone: TZ }))}</div>`).join("");
+    for (const day of days) {
+      const key = day.key, events = eventsOn(key), state = calendarStatus(key);
+      const used = dayTotal(key), goal = budget();
+      const dot = used && goal ? `<i class="dot ${used > goal ? "over" : "ok"}" title="${used > goal ? "Over goal" : "Goal met"}"></i>` : "";
+      const eventHtml = events.map(event => {
+        const first = key === event.start || day.weekday === 0 || key === days[0].key;
+        const kind = event.calendarStatus && event.calendarStatus !== "confirmed" ? event.calendarStatus : event.type;
+        return `<span class="ev ${kind} ${first ? "" : "cont"}">${first ? esc(event.title) + (event.approx ? " (tentative construction)" : "") : ""}</span>`;
       }).join("");
-      const label = `${niceDate(k)}${evs.length ? ": " + evs.map((e) => e.title).join(", ") : ""}`;
-      html += `<button type="button" role="gridcell" class="cal-day ${d.getMonth() !== m ? "other" : ""} ${k === todayKey() ? "today" : ""} ${k === selectedDay ? "selected" : ""}"
-        data-day="${k}" aria-label="${esc(label)}"><span class="num">${d.getDate()}</span>${dot}${evHtml}</button>`;
+      html += `<button type="button" role="gridcell" class="cal-day ${day.other ? "other" : ""} ${key === todayKey() ? "today" : ""} ${key === selectedDay ? "selected" : ""} ${["unknown", "conflict"].includes(state.status) ? "uncertain" : ""}"
+        data-day="${key}" aria-label="${esc(key + ": " + state.message + (events.length ? "; " + events.map(event => event.title).join(", ") : ""))}"><span class="num">${day.day}</span>${dot}${eventHtml}</button>`;
     }
     $("#calendar").innerHTML = html;
+    $("#calendarCoverage").textContent = "Partial official history. Dashed dates have unknown or conflicting restriction data; they do not mean No Restrictions. Future estimates are not confirmed dates." +
+      (historyState.warning ? " " + historyState.warning : "") + (restrictionStatus?.stale ? " Current verification is stale." : "");
+    const open = historyRecords.filter(record => record.kind === "declaration" && record.end === null);
+    $("#calendarOutlook").innerHTML = open.map(record => `<p><strong>Open-ended declaration: ${esc(record.stage ? "Stage " + record.stage : "No Restrictions")} from ${esc(record.start)}.</strong> ${esc(record.expectedDuration || "No official end date confirmed.")} Future continuation is unverified. <a href="${esc(record.source)}" target="_blank" rel="noopener">Official announcement</a></p>`).join("");
     renderCalDetail();
   }
   function renderCalDetail() {
     const evs = eventsOn(selectedDay), used = dayTotal(selectedDay), b = budget();
-    const meaning = { restriction: "Outdoor water use is restricted. Please cut back indoors too — shorter showers, full loads only.",
-      construction: "Construction nearby. Expect road closures; your tap water should keep flowing.",
-      info: "Good news — no restrictions expected for this step." };
-    $("#calDetail").innerHTML = `<h4>${esc(niceDate(selectedDay))}</h4>
+    const state = calendarStatus(selectedDay);
+    $("#calDetail").innerHTML = `<h4>${esc(historyCalendar.validDate(selectedDay) ? niceDate(selectedDay) : "Date unavailable")}</h4><p role="status">${esc(state.message)}</p>
       ${evs.length ? `<ul>${evs.map((e) => `<li><strong>${esc(e.title)}${e.approx ? " (approx. dates)" : ""}</strong> — ${esc(e.detail)}
-        <br><em>What this means for you:</em> ${meaning[e.type]} <a href="${esc(e.source)}" target="_blank" rel="noopener">Source</a></li>`).join("")}</ul>`
-        : "<p class='muted'>No City events on this day.</p>"}
+        <br><em>What this means for you:</em> ${esc(e.type === "restriction" ? "Follow the stage rules stated for this event; estimated construction durations do not confirm restriction dates." : e.type === "construction" ? "Tentative construction timeline; does not establish water restriction dates." : "See the source for this dated information.")} <a href="${esc(e.source)}" target="_blank" rel="noopener">Source</a>${e.endSource ? ` · <a href="${esc(e.endSource)}" target="_blank" rel="noopener">Official end declaration</a>` : ""}</li>`).join("")}</ul>`
+        : "<p class='muted'>No additional sourced events on this date. Restriction status is stated above.</p>"}
       ${used ? `<p>${esc(t(isMeasured(selectedDay) ? "cal.usedMeasured" : "cal.usedEstimated", { n: fmtL(used), g: fmtL(b) }))}</p>` : ""}
       ${(() => { // who recorded what that day
         const by = {};
@@ -597,7 +680,10 @@
   // Month navigation: buttons, swipe/drag, trackpad, keyboard (PageUp/PageDown) — unlimited in both directions.
   const calEl = $("#calendar");
   function moveMonth(dir) {
-    calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + dir, 1);
+    const next = historyCalendar.shiftMonth(calCursor, dir);
+    if (!next) return;
+    calCursor = next;
+    selectedDay = next;
     renderCalendar();
     calEl.classList.remove("slide-next", "slide-prev"); void calEl.offsetWidth;
     calEl.classList.add(dir > 0 ? "slide-next" : "slide-prev");
@@ -605,10 +691,9 @@
   $("#calPrev").addEventListener("click", () => moveMonth(-1));
   $("#calNext").addEventListener("click", () => moveMonth(1));
   $("#calToday").addEventListener("click", () => {
-    const t = parseKey(todayKey());
-    const diff = (t.getFullYear() - calCursor.getFullYear()) * 12 + t.getMonth() - calCursor.getMonth();
+    calCursor = todayKey().slice(0, 7) + "-01";
     selectedDay = todayKey();
-    if (diff) moveMonth(diff); else renderCalendar();
+    renderCalendar();
   });
   let drag = null, justSwiped = false;
   calEl.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY }; });
@@ -1031,7 +1116,7 @@
   /* ---------- chatbot ---------- */
   const chat = [];
   const chips = ["How much water can my family of 5 use per day?", "How often should I do laundry?",
-    "Can I water my lawn during Stage 4?", "Can I wash my car?", "Should I keep a tap running so my pipes don't freeze?", "When is the construction on 33 Avenue?"];
+    "Can I water my lawn under the current restrictions?", "Can I wash my car?", "Should I keep a tap running so my pipes don't freeze?", "When is the construction on 33 Avenue?"];
   $("#chips").innerHTML = chips.map((c) => `<button type="button">${esc(c)}</button>`).join("");
   $("#chips").addEventListener("click", (e) => { if (e.target.tagName === "BUTTON") ask(e.target.textContent); });
   $("#chatForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#chatInput").value.trim(); if (v) { $("#chatInput").value = ""; ask(v); } });
@@ -1054,8 +1139,9 @@
       household: S.settings?.household, community: S.settings?.community,
       perPersonGoalLitres: S.settings?.perPerson, dailyGoalLitres: budget(), usedTodayLitres: Math.round(dayTotal()),
       usedByCategory: categoryTotals(), // shower (timer) vs rest of home (meter)
+      restrictionStatus: { stage: restrictionStatus?.stage ?? null, verifiedAt: restrictionStatus?.verifiedAt ?? null, stale: restrictionStatus?.stale ?? true },
       activeEvents: eventsOn(todayKey()).map((e) => e.title),
-      upcomingEvents: C.events.filter((e) => e.end >= todayKey()).map((e) => `${e.title}: ${e.start} to ${e.end}${e.approx ? " (approx.)" : ""}`),
+      upcomingEvents: allEvents().filter(event => event.kind === "observation" ? event.start >= todayKey() : !event.end || event.end >= todayKey()).map(event => `${event.title}: ${event.start} to ${event.end || "no confirmed end date"}${event.approx ? " (approx.)" : ""}`),
       albertaAverageResidentialLitresPerPerson: S.benchmark?.alberta || null,
       quadrant: quadOf(S.settings?.community),
       quadrantRanking: S.ranking ? { demo: S.ranking.demo, quadrants: S.ranking.quadrants } : null,
@@ -1080,28 +1166,21 @@
   }
   function offlineAnswer(q) {
     const s = q.toLowerCase();
+    if (/restrict|stage|fine|penalt|ticket|car|lawn|grass|garden|tree|shrub|flower|rink|ice|skat|pool|hot tub|fountain|construction|when|end/.test(s)) {
+      const rules = currentRules();
+      return [rules.label + ". " + statusNote(), rules.summary, rules.fine, ...rules.notAllowed, ...rules.allowed, ...rules.exceptions, rules.source].join("\n");
+    }
     const nMatch = s.match(/(\d+)\s*(people|person|members|of us)|family of (\d+)/);
     const n = nMatch ? +(nMatch[1] || nMatch[3]) : S.settings?.household || 1;
     const per = S.settings?.perPerson || C.defaultPerPersonLitres;
     if (/laundry|wash(ing)? clothes|washer/.test(s)) {
       const every = n >= 5 ? "every 2 days" : n >= 3 ? "every 2–3 days" : "every 4–5 days";
-      return `The City asks for full loads only and fewer loads during Stage 4. For a household of ${n}, aim for one full load about ${every} (front-load ≈ 62 L, top-load ≈ 112 L per cycle). Use eco settings, and avoid 4–7 p.m. when Alberta's power grid peaks.`;
+      return `Full loads save water. For a household of ${n}, aim for one full load about ${every} (front-load ≈ 62 L, top-load ≈ 112 L per cycle). Use eco settings, and avoid 4–7 p.m. when Alberta's power grid peaks.`;
     }
     if (/how much|budget|goal|per day|daily/.test(s))
-      return `With a goal of ${per} L per person, a household of ${n} has about ${fmtL(per * n)} per day. City-wide, Calgary must stay under 500 million litres a day. A 3-minute shower is about ${fmtL(3 * 9.5)}.`;
-    if (/car/.test(s))
-      return "Under Stage 4 you can't wash your car with a hose on your driveway or street. Indoor car washes are allowed (the City encourages washing only when needed for safety). Fines start at $3,000.";
-    if (/lawn|grass|garden|tree|shrub|flower/.test(s))
-      return "No — watering lawns, gardens, trees and shrubs is not allowed by any method under Stage 4. Exception: edible food crops (like vegetables) with a spring-loaded hose nozzle or a hand-held container.";
-    if (/rink|ice|skat/.test(s))
-      return "Flooding or maintaining outdoor rinks (backyard or community) is not allowed under Stage 4.";
-    if (/pool|hot tub|fountain/.test(s))
-      return "Filling outdoor pools, hot tubs, wading pools, fountains or decorative water features is not allowed. Bird baths and residential ponds are okay, and indoor pools may operate.";
-    if (/fine|penalt|ticket/.test(s)) return "Violations of Stage 4 restrictions may result in fines starting at $3,000. Questions? Call 311.";
+      return `With a goal of ${per} L per person, a household of ${n} has about ${fmtL(per * n)} per day. A 3-minute shower is about ${fmtL(3 * 9.5)}.`;
     if (/frozen|freeze|pipe/.test(s))
       return "Keep your heat at 15°C or higher and open cabinet doors near pipes. Only if your home has frozen before or you received a City letter should you keep a pencil-thin stream running — that's an exception to saving water.";
-    if (/construction|33|89|when|end/.test(s))
-      return "Stage 4 started Nov 4 for about four weeks — the City hasn't announced an end date yet.\n" + C.events.filter((e) => e.end >= todayKey()).map((e) => `• ${e.title}: ${niceDate(e.start)} – ${niceDate(e.end)}${e.approx ? " (approx.)" : ""}`).join("\n");
     if (/shower/.test(s)) return "The City asks for showers of about 3 minutes — each minute saved can save up to 8 L. Showering every two days helps too. Try the Shower challenge timer!";
     if (/meter|m3|m³|cubic/.test(s))
       return "Your water meter is usually in the basement or utility room where the water line enters your home. Read the m³ numbers at about the same time each day and save them in 'Read your water meter' — 1 m³ = 1,000 litres. Tip: if the meter moves while no water is running, you may have a leak.";
@@ -1127,10 +1206,21 @@
       `<a href="${esc(u.source)}" target="_blank" rel="noopener">Source</a>`;
   }
   function renderRules() {
-    const r = C.stage4, li = (a) => a.map((x) => `<li>${esc(x)}</li>`).join("");
-    const tr = (k, en) => (lang !== "en" && Array.isArray(I18N[lang]?.[k]) ? I18N[lang][k] : en);
-    $("#rulesNo").innerHTML = li(tr("rules.noList", r.notAllowed)); $("#rulesYes").innerHTML = li(tr("rules.yesList", r.allowed)); $("#rulesHome").innerHTML = li(tr("rules.homeList", r.indoorAsks));
-    $("#fineChip").textContent = `⚠️ ${t("rules.fine")}`; $("#rulesSource").href = r.source;
+    const rules = currentRules(), list = values => values.map(value => `<li>${esc(value)}</li>`).join("");
+    $("#rulesTitle").textContent = `${rules.label} at a glance`;
+    const highlights = rules.highlights || { notAllowed: rules.notAllowed.slice(0, 2), allowed: rules.allowed.slice(0, 2) };
+    $("#rulesNo").innerHTML = list(highlights.notAllowed);
+    $("#rulesYes").innerHTML = list(highlights.allowed);
+    $("#rulesHome").innerHTML = list(rules.indoorAsks.slice(0, 1));
+    $("#rulesDetails").innerHTML = (rules.groups || []).map(group => `<details><summary>${esc(group.title)}</summary><ul>${list(group.notAllowed.map(text => "Not allowed: " + text))}${list(group.allowed.map(text => "Allowed: " + text))}</ul></details>`).join("") +
+      (rules.exceptions.length ? `<details><summary>Legal exceptions and essential uses</summary><ul>${list(rules.exceptions)}</ul></details>` : "");
+    $("#fineExplanation").textContent = restrictionStatus ? `${rules.fine} Using City water for a prohibited activity can lead to a fine. Check the activity details and legal exceptions before acting. Call 311 if an exemption is unclear.` : rules.fine;
+    $("#fineChip").textContent = rules.fine;
+    $("#rulesSource").href = rules.source;
+    $("#rulesSource").textContent = "City of Calgary — outdoor water rules";
+    const sources = restrictionStatus?.sources || [rules.source];
+    $("#restrictionVerification").innerHTML = esc(statusNote()) + " " + sources.map(source => `<a href="${esc(source)}" target="_blank" rel="noopener">Official status source</a>`).join(" · ");
+    if (rules.fineSource) $("#restrictionVerification").innerHTML += ` · <a href="${esc(rules.fineSource)}" target="_blank" rel="noopener">Fine schedule</a>`;
   }
 
 
@@ -1187,28 +1277,28 @@
     $("#kudosList").innerHTML = items.length ? items.map((x) => `<li>${esc(x)}</li>`).join("") : `<li class="muted">${esc(t("tog.none"))}</li>`;
   }
   function neighbourLists() {
-    const r = C.stage4, tr = (k, en) => (lang !== "en" && Array.isArray(I18N[lang]?.[k]) ? I18N[lang][k] : en);
-    return { no: tr("rules.noList", r.notAllowed), yes: tr("rules.yesList", r.allowed) };
+    const rules = currentRules();
+    return { no: rules.notAllowed, yes: [...rules.allowed, ...rules.exceptions] };
   }
   $("#nbPrint").addEventListener("click", () => {
     const L = neighbourLists(), li = (a) => a.map((x) => `<li>${esc(x)}</li>`).join("");
     const w = window.open("", "_blank");
     if (!w) { $("#nbMsg").textContent = t("nb.popup"); return; }
-    w.document.write(`<!DOCTYPE html><html lang="${lang}" dir="${lang === "ar" ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>Stage 4</title>
+    w.document.write(`<!DOCTYPE html><html lang="${lang}" dir="${lang === "ar" ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>Calgary water restrictions</title>
       <style>body{font-family:system-ui,sans-serif;font-size:20px;line-height:1.5;margin:32px;color:#111}h1{color:#c8102e;font-size:32px;margin:0 0 8px}h2{font-size:24px;margin:20px 0 6px}
       .box{border:3px solid #c8102e;border-radius:16px;padding:20px 28px;max-width:720px}.ess{background:#eef6ff;border-radius:12px;padding:12px 16px;margin-top:16px}</style></head>
-      <body><div class="box"><h1>💧 ${esc(t("nb.cardTitle"))}</h1><p>${esc(t("nb.cardIntro"))}</p>
+      <body><div class="box"><h1>💧 ${esc("Calgary water restrictions — " + currentRules().label)}</h1><p>${esc(statusNote())}</p>
       <h2>🚫 ${esc(t("nb.cardNo"))}</h2><ul>${li(L.no)}</ul>
       <h2>✅ ${esc(t("nb.cardYes"))}</h2><ul>${li(L.yes)}</ul>
       <p class="ess"><strong>${esc(t("nb.cardEss"))}</strong></p>
       <p>☎️ 311 Calgary · 211 Alberta · Distress Centre 403-266-HELP (4357)</p>
-      <p style="font-size:14px;color:#555">${esc(t("nb.cardFrom"))} · ${esc(C.stage4.source)}</p></div>
+      <p style="font-size:14px;color:#555">${esc(t("nb.cardFrom"))} · ${esc(currentRules().source)}</p></div>
       <script>window.onload=()=>window.print()<\/script></body></html>`);
     w.document.close();
   });
   $("#nbShare").addEventListener("click", async () => {
     const L = neighbourLists();
-    const text = `💧 ${t("nb.cardTitle")}\n${t("nb.cardIntro")}\n\n🚫 ${L.no.slice(0, 4).join("; ")}\n\n${t("nb.cardEss")}\n☎️ 311 · 211\n${C.stage4.source}`;
+    const text = `💧 ${currentRules().label}\n${statusNote()}\n\n🚫 ${L.no.slice(0, 4).join("; ")}\n\n${t("nb.cardEss")}\n☎️ 311 · 211\n${currentRules().source}`;
     try {
       if (navigator.share) { await navigator.share({ text }); $("#nbMsg").textContent = t("nb.sent"); }
       else { await navigator.clipboard.writeText(text); $("#nbMsg").textContent = t("nb.copied"); }
@@ -1418,6 +1508,9 @@
     if (S.benchmark?.alberta) $("#setPerPerson").value = S.benchmark.alberta.litres; // cited default for new users
   });
   renderAll(); setShowerUi();
+  refreshRestrictions();
+  setInterval(refreshRestrictions, 5 * 60 * 1000);
+  window.addEventListener("online", refreshRestrictions);
   renderHousehold(); renderShareToggle(); loadHousehold();
   loadNews(); loadRanking(); loadDiscordWidget(); loadFeed(); load311();
 })();

@@ -4,6 +4,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { getRestrictions } from "../lib/restrictions.mjs";
 
 // Re-use the same facts the website shows (data/config.js) so answers stay consistent.
 function loadConfig() {
@@ -28,10 +29,15 @@ export default async function handler(req, res) {
   if (!messages.length || messages[0].role !== "user") return res.status(400).json({ error: "No question" });
 
   const C = loadConfig();
+  const restrictions = await getRestrictions();
   const system = `You are DropBot, the assistant on DropWise YYC, a website that helps Calgary households save water during water restrictions.
 
 FACTS YOU MAY RELY ON (from official City of Calgary and AESO sources):
 ${C.ruleFacts.map((f) => "- " + f).join("\n")}
+
+VERIFIED RESTRICTION STATUS (authoritative over user context and historical notices):
+${JSON.stringify(restrictions)}
+If stale, state the last verification time. If stage is null, say current status is unavailable. Never infer a current stage or end date from the calendar or user context.
 
 CALENDAR (official dates; "approx." means the City gave an approximate duration):
 ${C.events.map((e) => `- ${e.title}: ${e.start} to ${e.end}${e.approx ? " (approx.)" : ""}. ${e.detail}`).join("\n")}

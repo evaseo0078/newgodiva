@@ -1,6 +1,7 @@
 {
   "functions": {
-    "api/chat.js": { "includeFiles": "data/**" },
+    "api/restrictions.js": { "includeFiles": "data/**", "maxDuration": 30 },
+    "api/chat.js": { "includeFiles": "data/**", "maxDuration": 30 },
     "api/meter-read.js": { "maxDuration": 20 }
   }
 }
