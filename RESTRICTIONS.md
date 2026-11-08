@@ -1,199 +1,291 @@
-# Calgary restriction verification
+# Calgary restriction verification and calendar
 
-The previous banner inferred Stage 4 from inclusive dates in `data/config.js`.
-Rules, fines, chatbot facts, the popup, translations and neighbour cards assumed
-Stage 4. `/api/news` retrieves CBC headlines, not official restriction status.
-The community-boundary and 311 Open Data APIs do not provide restriction status.
+## What was hardcoded
 
-## Sources and rules
+The existing verifier dynamically extracted only the current stage, supporting
+URLs and verification time. Effective dates were always null. The calendar had
+a manually entered November 4, 2026 Stage 4 start, a four-week duration and a fixed
+verification cutoff. Its presentation extended the matching open declaration
+through every future month. Construction notices also have curated dates, but
+they are separate events and never establish water restrictions.
 
-No documented current-stage API was identified in Calgary's public Open Data
-search or restriction guidance. The official guidance says restrictions are
-announced through City communications. `/api/restrictions` therefore retrieves:
+The November runtime record has been removed. November examples remain only in
+regression fixtures. No production parser, timeline or presentation condition
+matches a particular month, year, stage or declaration filename.
+
+## Files in this change
+
+| Files | Purpose |
+| --- | --- |
+| `lib/announcement-extraction.mjs`, `lib/official-announcements.mjs` | Official discovery, HTML/PDF parsing and structured facts |
+| `lib/restrictions.mjs`, `lib/restriction-history.mjs` | Cached stage verification, metadata, persistent observations and revision audit |
+| `data/restriction-timeline.js`, `data/restriction-calendar.js`, `data/calendar-presentation.js` | Generated ranges, validation, bounded estimates and calendar states |
+| `app.js`, `index.html`, `styles.css` | Current summary, contextual legends, readable details and separate views |
+| `package.json`, `package-lock.json`, `vercel.json` | PDF parser dependency, worker packaging and function time allowance |
+| `scripts/check-restrictions.mjs`, `scripts/check-calendar-browser.mjs` | Reproducible live audit and desktop/mobile browser checks |
+| `tests/announcement-timeline.test.mjs`, `tests/api-compatibility.test.mjs` | Synthetic extraction/timeline scenarios and API compatibility |
+| `tests/calendar-presentation.test.mjs`, `tests/restriction-calendar.test.mjs`, `tests/restrictions-ui.test.mjs`, `tests/restrictions.test.mjs`, `tests/fixtures/restriction-scenarios.js` | Existing-feature regression coverage and isolated November fixture |
+| `data/calgary-time.js`, `data/household-calendar.js`, `tests/calendar-audit.test.mjs` | Consistent Alberta time, recorded-only household goals, and calendar audit regressions |
+
+## Calendar audit: timezone and household data
+
+The previous server used Node's bundled tzdata 2025b, while an updated browser
+could use the newer Alberta timezone rules. This made the extractor convert
+the City's 12:01 a.m. ABT declaration to 07:01 UTC incorrectly. The current live
+declaration extracts to **2026-11-04T06:01:00Z**, displayed as **12:01 a.m. ABT**.
+07:01 UTC is correctly displayed as 1:01 a.m. ABT; it is not the declared start.
+
+Alberta adopted year-round UTC-6 in November 2026:
+https://www.alberta.ca/albertas-new-time-system-abt.
+IANA's 2026f America/Edmonton data incorporates the change:
+https://data.iana.org/time-zones/tzdb-2026f/northamerica.
+`data/calgary-time.js` shares historical America/Edmonton rules and the official
+post-transition Alberta rule between Node and the browser. A small fixed-zone
+compatibility fallback after the transition avoids relying on outdated host
+tzdata; it is timezone policy data, not a restriction event date. Earlier skipped
+and repeated DST hours are still rejected when converting an ambiguous clock
+time. Future dates no longer invent the abolished seasonal transitions. Update
+this versioned policy if Alberta changes its timezone legislation again.
+
+Snapshots and announcements carry `timezoneVersion`. An older cached snapshot
+forces a new verification. Preserved source clock times can correct generated
+instants without rewriting original audit entries. A cached precise time without
+enough source information is withheld until it can be verified, rather than
+blindly shifting its UTC value. Verification timestamps remain unchanged during
+an outage. Calendar day keys also use the shared rules, including records near
+local midnight. Automatically generated observations with an old saved date key
+are resolved to the correct date from their original UTC verification instant;
+their stage and verification time do not change. Corrected timezone metadata
+wins over an equally dated older browser copy. Manually curated archive entries
+are not re-dated from their review timestamps.
+
+Household Goals uses actual non-demo records from the existing local/online
+household state. A valid meter difference requires readings on consecutive
+Calgary dates; an isolated reading or a multi-day gap cannot become an over-goal
+daily result. Valid measured zero is recorded usage. Actual activity logs can
+supply a clearly labelled estimate when a daily meter result is unavailable.
+Missing records, missing goals and unavailable daily totals have separate neutral
+states. The demo feature elsewhere in the app is preserved, but its records are
+excluded from calendar goals.
+
+Past days are compared against the **current** household goal: the project has
+no historical goal settings. Activity logs may be incomplete, and meter totals
+cover the interval between readings, not necessarily exactly 24 hours or
+midnight-to-midnight. These records are not a complete utility billing history.
+
+The two construction records remain manually curated from the October 22,
+2026 notice (verified November 8, 2026):
+https://www.calgary.ca/content/dam/www/is/utilities-delivery/bearspaw-feeder-main/documents/october-22-construction-notice.pdf.
+
+| Activity | Notice evidence | Stored planning period |
+| --- | --- | --- |
+| Feeder main draining | Page 2: November 4, approximately four days | November 4-7, 2026 |
+| 24-hour intersection construction | Page 1: expected November 14, approximately ten days | November 14-23, 2026 |
+
+Both end dates are calculated inclusive boundaries, not verified completion
+dates. Config records retain the duration, publication date, verification time,
+page number and `endDerived: true`. The Construction view says that its notice
+dates are curated estimates, not live progress or water restriction orders.
+This PDF has five pages and exceeds the production declaration reader's
+four-page limit; it was checked separately for this audit without relaxing the
+declaration fetch/parser limits.
+
+## Official sources and extraction
+
+No documented official current-restriction API was identified. The existing
+present-tense stage verifier still checks these City pages:
 
 - https://www.calgary.ca/planning/water/bearspaw-feeder-main/water-restrictions.html
 - https://www.calgary.ca/water/drought.html
 
-It requires an explicit present-tense declaration, ignores future/historical
-wording and scripts/navigation, and rejects conflicting current declarations.
-One explicit declaration is sufficient if the other page is unavailable or has
-no current declaration. The response lists only sources that supplied evidence.
-Newsroom headlines and construction durations do not establish current status.
+It ignores future/historical claims and navigation/scripts, rejects conflicting
+current declarations, and can accept one explicit declaration when the other
+page is unavailable. Newsroom headlines do not override this current-stage check.
 There is no AI inference or production stage override.
 
-`data/restrictions.js` contains all five rule sets, reviewed November 8, 2026:
+`lib/official-announcements.mjs` also discovers relevant official links from
+those pages and https://newsroom.calgary.ca/?h=1. It follows an advertised RSS
+feed when available, linked restriction declarations/removals in PDF form, and
+water-related newsroom articles. It revisits recent previously verified sources.
+Discovery checks at most ten linked documents plus the three entry pages and
+one advertised feed per refresh; it does not crawl the entire historical archive.
+Only HTTPS Calgary/Calgary Newsroom hosts are accepted, including redirects.
 
-- Rules: https://www.calgary.ca/water/drought/outdoor-water-restrictions.html
-- Normal schedule: https://www.calgary.ca/water/drought/lawn-watering-schedule.html
-- Fines, Schedule B: https://www.calgary.ca/content/dam/www/uep/water/documents/water-documents/40M2006-water-utility-office-consolidation.pdf
-- Stage 4 exceptions: the feeder-main restriction page above.
+`lib/announcement-extraction.mjs` uses JSON-LD or meta publication timestamps
+where supplied, separately retains page modification dates, and deterministically
+extracts restriction stages, effective dates/times, explicit ends, lifting notices,
+changes, duration estimates and estimate revisions from announcement text.
+Text-based declarations use the pinned `pdfjs-dist` parser with evaluation
+disabled, a four-page limit and a two-megabyte document limit. No OCR service,
+LLM, paid API or additional hosted service is used.
 
-No Restrictions means no temporary restriction stage. Calgary's normal watering
-schedule still applies. Stage fines are $400, $600, $1,500 and $3,000; the normal
-watering-schedule fine can be $200. The model preserves edible-crop, establishment,
-water-managed-site, health/safety, livestock and commercial-plant exceptions.
-Rules are curated from official guidance, not automatically rewritten by a
-scraper. Review this model when the City changes its bylaws or guidance.
+An update/publication timestamp is not a legal effective time. Date-only notices
+retain date precision; missing times stay null. English dates without a year
+require dated source context, and ambiguous rollover dates are withheld.
+Civil dates/times are interpreted in America/Edmonton. Nonexistent or ambiguous
+DST clock times retain the date without inventing an exact instant.
 
-## Updating and failures
+The live audit on November 8, 2026 discovered the City's linked declaration and
+extracted November 4 at 12:01 a.m. Calgary time, plus "approximately four weeks"
+from official HTML. No confirmed end was found. These are retrieved facts, not
+runtime constants. City pages without publication metadata return null rather
+than treating their "Updated" date as a publication date.
 
-Successful verification is cached for 15 minutes. Requests have an 8-second
-timeout per official page; checks run concurrently. Failed verification retries
-after a one-minute backoff. The browser requests status on startup, every five
-minutes, and after connectivity returns. Opening a page does not change the
-original verification timestamp on a cached response.
+## Structured records and timelines
 
-The server keeps its last successful snapshot in memory and the operating
-system's temporary directory. For persistence across Vercel cold starts and
-instances, configure a dedicated Upstash Redis REST database with these
-**server-only** environment variables:
+`data/restriction-timeline.js` builds date ranges from extracted announcements.
+Each range includes `id`, `stage` (0-4), `start`, nullable `end`, `status`
+(`confirmed`, `scheduled`, `estimated`, `unknown`), `source` and `verifiedAt`.
+Additional fields preserve `startsAt`/`endsAt`, publication metadata,
+`declarationSource`, provenance, revision identifiers, `expectedDuration`,
+`estimateSource`, `estimate` and `estimatedThrough`.
+
+`end` is set only by an explicit confirmed end, effective stage change or lifting
+announcement. A current-stage observation alone never invents a transition date
+or closes an earlier range. Future scheduled changes remain scheduled, even
+after their planned start, until a corroborating announcement confirms them.
+They do not backfill the preceding months as confirmed history.
+
+Estimates preserve the original language and use inclusive civil date arithmetic.
+For example, an approximate four-week period starting November 4 has an
+approximate last covered day of December 1. This is a derived planning boundary,
+not an official expiry date. Numeric/word durations, day/week/month units and
+ranges such as "two to three weeks" are supported. "At least four weeks" has no
+upper boundary. An extension such as "another two weeks from today" is anchored
+to the publication date; an extension without a clear anchor retains its wording
+but cannot produce a new calendar boundary.
+
+New versions of an announcement replace its presentation while earlier extracted
+versions remain in the audit history. Same-date conflicting stages and conflicting
+current effective start dates produce unknown coverage and warnings. Conflicting
+duration estimates without a reliable publication/revision order withhold the
+forecast; a clearly later dated estimate takes precedence. An explicit
+timed change is represented as an intraday transition.
+
+## Calendar behavior
+
+`data/restriction-calendar.js` validates ranges, merges history and generates
+42-day month grids. UTC civil arithmetic prevents DST/viewer timezone shifts.
+Month/year navigation makes no API requests. The retained, previously reviewed
+historical archive contains July/August 2024 observations and the March 9-April 2,
+2026 closed range, including the April 2, 9 a.m. lifting transition. It is partial:
+there is no verified complete 2024/2025/2026 timeline or uninterrupted Stage 0
+interval between spring and November. Missing history says **Historical data
+unavailable**, never **No Restrictions**.
+
+`data/calendar-presentation.js` distinguishes confirmed historical coverage,
+the current verified day, scheduled starts, striped estimated continuation and
+unknown dates. Estimates end at their announced/derived boundary. Without an
+estimate, there is no future band. A passed estimate does not establish lifting:
+the current-stage summary remains visible and says to follow the restriction
+until the City announces a change. Future months are not filled indefinitely.
+Future dates are never labelled independently verified.
+
+Water Restrictions is the default view. Household Goals and Construction remain
+separate views with contextual legends. The current summary is above the filters;
+day details are short and keep sources/check dates in an expandable section.
+Construction dates in `data/config.js` remain curated, explicitly tentative where
+applicable, and independent of restriction detection and timeline calculations.
+
+## Caching, failures and durable storage
+
+Successful verification is cached for 15 minutes. A collection has a 24-second
+network deadline; individual standalone fetches have an eight-second timeout.
+Failed current-stage verification retries after a one-minute backoff. The browser
+polls every five minutes and on reconnection, allowing 45 seconds for the complete
+status/history response. Server functions allow 60 seconds for source collection,
+PDF parsing and persistence. Responses send `Cache-Control: no-store`.
+
+The service retains the last successful stage and its original timestamp on
+source failure or conflict. Missing/changed announcement formats produce warnings
+and unknown fields rather than guessed dates. Old cache snapshots trigger a new
+structured check but remain available as stale fallback. With no verified cache,
+the UI shows status unavailable rather than a default stage.
+
+Memory and temporary files are best-effort fallbacks. For reliable retention
+across Vercel instances, restarts and deployments, configure the existing optional
+Upstash Redis REST integration using **server-only** environment variables:
 
 ```
 UPSTASH_REDIS_REST_URL
 UPSTASH_REDIS_REST_TOKEN
 ```
 
-The cache key is `dropwise:restrictions:v1`, with no automatic expiry, so an
-outage cannot erase the last verification. Cache failures do not prevent live
-verification. Without Redis, server cache persistence is best-effort: a cold
-instance may have no snapshot. Browsers separately retain their last verified
-response in localStorage and mark it stale until refreshed. With no verified
-snapshot anywhere, the UI shows **Status unavailable**, never a default stage.
-Deployments should configure Redis to retain verification for new visitors
-during source outages. Existing Supabase tables and permissions are unchanged.
+The existing keys `dropwise:restrictions:v1` and
+`dropwise:restriction-history:v1` are reused without expiry. The snapshot uses
+schema version 2, and the history response uses `timelineVersion: 2`.
+Each date/stage observation has its own hash field. Accepted and rejected
+announcement revisions have separate immutable audit fields; repeated unchanged
+facts are deduplicated. Individual hash writes preserve unrelated records under
+concurrent server instances. Browser localStorage also retains available history.
+No Supabase schema changes or credentials in browser code are required.
 
-The API exposes `stage` (0–4 or null), `verifiedAt`, `checkedAt`, `nextCheckAt`,
-`stale`, `warning`, `sources`, the applicable rules, and nullable effective dates.
-It sends `Cache-Control: no-store`; freshness is controlled by the verification
-cache so a CDN cannot hide a verification failure.
+The status endpoint includes structured metadata, announcements and a `history`
+object with records, audit revisions, partial coverage, storage availability and
+extraction warnings. Without Redis, `history.storage` is `temporary` and the UI
+warns that some records may be missing. Configure durable storage before relying
+on history surviving a cold start. Audit size grows with actual fact revisions;
+retention is not automatically pruned.
 
-The banner, popup, cards, fines, hero kicker, offline restriction answers,
-neighbour print/share cards and server chat grounding use the same stage model.
-Dynamic rule text uses English; existing translations for unrelated features are
-preserved. Old Stage 4 translations are not used for current restriction rules.
+## Remaining extraction limits
 
-## Calendar
+Discovery is bounded and request-driven, not a comprehensive archival ingestion
+or scheduled monitoring service. An announcement posted and removed between
+visits may never be observed. There is no claim that every historical stage has
+been retrieved. The extractor supports validated English wording; scanned PDFs,
+unsupported wording, vague windows such as "late spring," absent effective dates,
+unclear extension anchors and contradictory claims require review. These details
+remain unknown or retain the last sourced information with warnings. Publication
+times and official expiry dates cannot be manufactured when a source omits them.
+Source links and original extracted evidence/revisions remain available for review.
 
-The calendar uses `data/restriction-calendar.js`, which contains the verified
-archive and shared date-range resolution functions. Construction events remain
-separate in `data/config.js`. All calendar date keys use America/Edmonton; month
-grids use UTC calendar arithmetic so the viewer's timezone and DST cannot shift
-dates. Navigating months/years makes no API requests.
+Stage rules remain curated in `data/restrictions.js` from the City's guidance and
+fine schedule. They are not rewritten by scraping. Existing five-stage rule cards,
+legal exceptions, browsable stage guide, Discord, Gemini, chat and Supabase flows
+are preserved. Historical rules may differ; consult the dated announcement.
 
-Every record has `id`, `stage` (0–4), `start`, nullable `end`, `status`
-(`confirmed`, `scheduled`, `estimated`, `unknown`), `source`, and `verifiedAt`.
-`kind` distinguishes declarations from dated observations. `end` is populated
-only for an officially confirmed end. `endsAt`/`startsAt` preserve known intraday
-transitions. `estimatedThrough` supports explicitly estimated coverage without
-setting an official end; `expectedDuration` can retain an approximate duration
-without calculating any dates. `verifiedThrough` limits an open declaration's
-confirmed coverage to the last verified Calgary date.
+## Local testing
 
-Verified archive coverage:
-
-- July 17, 2024: Stage 3 observation.
-- July 18 and July 22, 2024: Stage 2 observations. The earlier tentative July 22
-  move to Stage 1 was not implemented; the actual July 22 announcement takes precedence.
-- August 26, 2024: Stage 4 observation.
-- March 9–April 2, 2026: confirmed Stage 4 range. The official lifting declaration
-  takes effect April 2 at 9 a.m. Calgary time; April 2 shows a stage transition.
-- April 2, 2026: No Restrictions observation after the lifting time. This is not
-  extrapolated to the rest of spring/summer.
-- November 4, 2026: confirmed Stage 4 start, open-ended. The verified declaration
-  covers through November 7 Calgary time (reviewed November 8 UTC). Approximately
-  four weeks remains a duration estimate; no December 1 end date is fabricated.
-
-All source URLs and source verification timestamps are stored with each entry.
-Historical rules may differ from today's stage guide: use the dated announcement
-for the rules that applied at that time.
-
-The complete 2024/2025/2026 timeline is **not verified**. In particular, no complete
-Stage 1 timeline or uninterrupted April–November 2026 Stage 0 interval is claimed.
-Gaps say **Historical data unavailable**. Future dates lacking explicit scheduled
-or estimated coverage say **No official restriction announcement for this date**.
-An open-ended declaration is also shown as an advisory, so unknown future dates
-are never presented as evidence that an ongoing declaration has ended.
-
-Overlapping contradictory stages show uncertainty unless explicit effective
-times establish a transition. Live source conflicts remain visible as current
-uncertainty while retaining the last verified banner stage. Outdated open-period
-information is marked stale; immutable closed historical ranges do not expire.
-
-Archive entries are curated from official announcements and must be reviewed
-when the City publishes effective-date changes. Current-stage checks automatically
-retain dated observations; they never manufacture past effective ranges or close
-open declarations when a different current stage is observed. An observation's
-`start` is its coverage/observation date, not an inferred legal start date.
-
-Construction windows remain explicitly tentative. Archived November notices
-retain their original date and are labelled archived.
-
-## Durable history and presentation
-
-The existing Upstash server-only variables also enable the Redis hash
-`dropwise:restriction-history:v1`. It has no TTL. Each Calgary date/stage has its
-own field; later verification can refresh that field's timestamp, but changing
-stage never overwrites records for another stage or date. This bounds remote
-history to at most five observations per day. Updates use individual hash fields
-to avoid losing unrelated records when two server instances write concurrently.
-The source archive is bundled with the code and survives deployments independently.
-
-Memory, an append-only temporary JSONL log, and browser localStorage provide
-fallback history. Configure Redis for reliable observation retention across
-Vercel cold starts/deployments and new browsers. API `history.storage` reports
-`durable` or `temporary`, with a visible warning on storage failures or missing
-configuration. Storage credentials remain server-only. No Supabase migration is
-required. The same status response includes the history; month navigation never
-fetches data per day or per month.
-
-Rule cards show 3–5 key rules total, followed by expandable activity groups and
-all legal exceptions. Fines are linked to prohibited activities and the official
-fine schedule. The banner popup has five independently browsable stage buttons;
-exploring a guide does not change the live banner, active cards, or verification.
-
-## Local testing (Node 20+)
-
-Run the automated parser, cache and UI-rendering tests:
+Install dependencies and run all automated tests:
 
 ```
-npm.cmd test
+npm ci
+npm test
 ```
 
-On non-Windows shells, `npm test` is equivalent. UI tests exercise the actual
-render functions with a minimal DOM; they are not browser layout tests.
+PowerShell can use `npm.cmd`. Synthetic tests cover stages in other months,
+transitions, early lifting, extensions, missing durations/data, scheduled starts,
+source failures/conflicts, PDF text, timezone/DST, history restart persistence,
+browser rendering and all eight API module imports. Integration tests use mocked
+official responses; they do not call paid services or send Discord messages.
 
-Preview each status without API keys or external requests:
+Read-only live source audit (no cache writes):
 
 ```
-node scripts/restrictions-dev.mjs 0
-node scripts/restrictions-dev.mjs 1
-node scripts/restrictions-dev.mjs 2
-node scripts/restrictions-dev.mjs 3
-node scripts/restrictions-dev.mjs 4
+node scripts/check-restrictions.mjs --summary
 ```
 
-Run one command at a time, visit http://127.0.0.1:3000, choose guest access,
-and check the banner, popup, rule lists, fine, calendar and neighbour card.
-Stop the server with Ctrl+C before switching fixtures. Fixture 0 is No
-Restrictions. `stale` displays a day-old Stage 2 snapshot; `unknown` displays
-unavailable status when browser cache is empty. Clear only localStorage key
-`dw_verified_restrictions_v1` to test an empty cache without deleting household
-records. With a browser snapshot present, `unknown` should preserve it as stale.
-
-Omit the argument for live official-page verification:
+Live local preview, including the status/history endpoint:
 
 ```
 node scripts/restrictions-dev.mjs
 ```
 
-This loopback-only preview serves static assets and the restriction endpoint.
-Other APIs are not implemented by this preview. For the complete existing app
-and all integrations, use `vercel dev` with your existing server environment
-variables. Inspect `/api/restrictions` to see timestamps, stage and sources.
-No fixture override is included in the deployed API.
+Visit http://127.0.0.1:3000 and choose guest access. For existing simple status
+fixtures, append `0`, `1`, `2`, `3`, `4`, `stale` or `unknown`. These fixtures
+deliberately do not invent effective dates or durations. Stop with Ctrl+C before
+switching modes. To test an empty cache, clear only
+`dw_verified_restrictions_v1`, preserving household data. Other application APIs
+require `vercel dev` with the project's existing server environment variables.
 
-For an outage check, load a verified status, then take the browser offline and
-wait for the next poll (or reload). The last verified stage must remain visible
-with a stale warning and unchanged verification time. The automated suite also
-tests server-cache recovery after a restart, source conflicts and malformed
-responses. No deployment or Git push is required for these checks.
+Desktop/mobile Chrome layout checks with a synthetic May 2027 Stage 2 timeline:
+
+```
+node scripts/check-calendar-browser.mjs
+```
+
+This check requires Node 22+ for its built-in WebSocket client and installed
+Chrome. Set `CHROME_BIN` if Chrome is not at the default executable path. It uses
+an isolated browser profile, local mocked responses, and screenshots in the OS
+temporary directory. No application deployment, external writes, Git commit or
+push is performed.

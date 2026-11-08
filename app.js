@@ -1,6 +1,8 @@
 /* DropWise YYC — front-end logic (no framework, no build step). */
 import "./data/restrictions.js";
 import "./data/restriction-calendar.js";
+import "./data/calendar-presentation.js";
+import "./data/household-calendar.js";
 
 (async () => {
   "use strict";
@@ -9,7 +11,7 @@ import "./data/restriction-calendar.js";
   const $ = (s, el = document) => el.querySelector(s);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmtL = (n) => `${Math.round(n).toLocaleString("en-CA")} L`;
-  const dateKey = (d = new Date()) => d.toLocaleDateString("en-CA", { timeZone: TZ });
+  const dateKey = (d = new Date()) => window.DW_CALGARY_TIME.dayKey(d);
   const todayKey = () => dateKey();
   const parseKey = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
   const keyOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -175,10 +177,7 @@ import "./data/restriction-calendar.js";
   function validRestrictionStatus(value) {
     return value && Number.isInteger(value.stage) && value.stage >= 0 && value.stage <= 4 &&
       Number.isFinite(Date.parse(value.verifiedAt)) && Date.parse(value.verifiedAt) <= Date.now() + 60000 &&
-      Array.isArray(value.sources) && value.sources.length > 0 && value.sources.every(source => [
-        "https://www.calgary.ca/planning/water/bearspaw-feeder-main/water-restrictions.html",
-        "https://www.calgary.ca/water/drought.html"
-      ].includes(source));
+      Array.isArray(value.sources) && value.sources.length > 0 && value.sources.every(source => /^https:\/\/(?:www\.calgary\.ca|calgary\.ca|newsroom\.calgary\.ca)\//i.test(source));
   }
   const currentRules = () => window.DW_RESTRICTIONS.stages[restrictionStatus?.stage] || {
     label: "Status unavailable", summary: "Check the official City source before using water outdoors.",
@@ -186,11 +185,12 @@ import "./data/restriction-calendar.js";
     allowed: [], notAllowed: [], exceptions: [], indoorAsks: ["Conserve water while meeting drinking, hygiene and medical needs."]
   };
   const statusNote = () => restrictionStatus?.verifiedAt
-    ? `${restrictionStatus.stale ? "STALE — last verified" : "Verified"} ${new Date(restrictionStatus.verifiedAt).toLocaleString("en-CA", { timeZone: TZ })} (Calgary time).${restrictionStatus.stale ? " Unable to verify current status; check the City source." : ""}`
+    ? `${restrictionStatus.stale ? "STALE — last verified" : "Verified"} ${window.DW_CALGARY_TIME.format(restrictionStatus.verifiedAt, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" })} (Calgary time).${restrictionStatus.stale ? " Unable to verify current status; check the City source." : ""}`
     : "Current restriction status is unavailable. Check the official City source.";
   const historyCalendar = window.DW_CALENDAR;
+  const historyTimeline = window.DW_TIMELINE;
   let historyState = readJSON("dw_restriction_history_v1") || {};
-  let historyRecords = historyCalendar ? historyCalendar.mergeRecords(historyCalendar.records, historyState.records || []) : [];
+  let historyRecords = historyCalendar ? (historyTimeline?.reconcileTimeline || historyCalendar.mergeRecords)(historyCalendar.records, historyState.records || []) : [];
   let guideStage = null;
   const restrictionEvents = () => restrictionStatus ? [{
     title: `${currentRules().label} — ${restrictionStatus.stale ? "last verified" : "verified status"}`,
@@ -216,11 +216,11 @@ import "./data/restriction-calendar.js";
   };
   async function refreshRestrictions() {
     try {
-      const response = await fetch("/api/restrictions", { cache: "no-store", signal: AbortSignal.timeout(25000) });
+      const response = await fetch("/api/restrictions", { cache: "no-store", signal: AbortSignal.timeout(45000) });
       const value = await response.json();
       currentVerificationIssue = value.verificationIssue || null;
       if (historyCalendar && value.history) {
-        historyRecords = historyCalendar.mergeRecords(historyRecords, value.history.records || []);
+        historyRecords = (historyTimeline?.reconcileTimeline || historyCalendar.mergeRecords)(historyRecords, value.history.records || []);
         historyState = { ...value.history, records: historyRecords };
         try { localStorage.setItem("dw_restriction_history_v1", JSON.stringify(historyState)); } catch {}
       }
@@ -639,47 +639,122 @@ import "./data/restriction-calendar.js";
   /* ---------- calendar ---------- */
   let calCursor = todayKey().slice(0, 7) + "-01";
   let selectedDay = todayKey();
+  let calendarView = "restrictions";
+  function calendarDisplayOptions(date = todayKey()) {
+    return { today: todayKey(), currentStatus: restrictionStatus, stale: date >= todayKey() && !!restrictionStatus?.stale, conflict: currentVerificationIssue === "conflict" };
+  }
+  function renderCurrentRestrictionSummary() {
+    const current = restrictionStatus, view = window.DW_CALENDAR_VIEW;
+    if (!current) { $("#currentRestrictionSummary").innerHTML = '<div class="cal-period-card">Current restriction status is unavailable. Check the City before using water outdoors.</div>'; return; }
+    const label = value => historyCalendar.validDate(value) ? view.dateLabel(value) : value && Number.isFinite(Date.parse(value)) ? window.DW_CALGARY_TIME.format(value, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) + " Calgary time" : null;
+    const times = historyTimeline.statusTimes(current);
+    const start = label(times.effectiveFrom), end = label(times.effectiveTo);
+    const sources = [...new Set([current.declarationSource, ...(current.sources || [])].filter(source => source && /^https:\/\/(?:www\.calgary\.ca|calgary\.ca|newsroom\.calgary\.ca)\//i.test(source)))];
+    $("#currentRestrictionSummary").innerHTML = `<div class="cal-period-card" data-current-stage="${current.stage}"><strong>${esc(currentRules().label)} · ${current.stale ? "last verified status" : "current City status"}</strong><span>${esc(start ? "Effective from " + start + "." : "Effective start date could not be verified automatically.")} ${esc(end ? "Confirmed end: " + end + "." : "End date unknown.")}</span>
+      ${current.stage ? '<span>Follow the current restriction until the City announces a change.</span>' : '<span>No temporary restrictions were in effect at the last check. Normal watering rules still apply.</span>'}
+      <span class="cal-duration-note">${esc(current.expectedDuration ? "Announced estimate: " + current.expectedDuration + ". This is not an expiry date." : "No reliable duration estimate extracted.")}</span>
+      ${current.extractionWarnings?.length ? '<small>Some announcement details could not be verified automatically.</small>' : ""}
+      <details class="cal-sources"><summary>Official sources and last check</summary><p>${esc(statusNote())}</p>${current.publishedDate ? `<p>Declaration publication date: ${esc(view.dateLabel(current.publishedDate))}</p>` : ""}${sources.map(source => `<p><a href="${esc(source)}" target="_blank" rel="noopener">Official City source</a></p>`).join("")}</details></div>`;
+  }
+  function setCalendarView(mode) {
+    if (!window.DW_CALENDAR_VIEW.viewModes.includes(mode)) return;
+    calendarView = mode;
+    $("#calendarViews").querySelectorAll("[data-calendar-view]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.calendarView === mode)));
+    renderCalendar();
+  }
   function renderCalendar() {
-    const days = historyCalendar.monthGrid(calCursor);
+    const days = historyCalendar.monthGrid(calCursor), view = window.DW_CALENDAR_VIEW;
+    renderCurrentRestrictionSummary();
     if (!days.length) { $("#calendar").innerHTML = "<p>Date unavailable</p>"; return; }
+    const descriptions = new Map(days.map(day => {
+      return [day.key, { ...view.describeDay(day.key, historyRecords, calendarDisplayOptions(day.key)),
+        construction: eventsOn(day.key).filter(event => event.type === "construction"),
+        goal: window.DW_HOUSEHOLD_CALENDAR.dayUsage(day.key, S, budget()) }];
+    }));
+    $("#calendar").dataset.view = calendarView;
     $("#calMonth").textContent = new Date(calCursor + "T12:00:00Z").toLocaleDateString(LOCALE[lang], { month: "long", year: "numeric", timeZone: TZ });
+    const legend = view.legendForView(calendarView, [...descriptions.values()]);
+    $("#calendarLegend").innerHTML = legend.map(item => `<span class="ev-key ${esc(item.style)}" data-legend="${esc(item.id)}">${esc(item.label)}</span>`).join("");
+    $("#calendarLegend").hidden = !legend.length;
     let html = days.slice(0, 7).map(day => `<div class="cal-dow" role="columnheader">${esc(new Date(day.key + "T12:00:00Z").toLocaleDateString(LOCALE[lang], { weekday: "short", timeZone: TZ }))}</div>`).join("");
-    for (const day of days) {
-      const key = day.key, events = eventsOn(key), state = calendarStatus(key);
-      const used = dayTotal(key), goal = budget();
-      const dot = used && goal ? `<i class="dot ${used > goal ? "over" : "ok"}" title="${used > goal ? "Over goal" : "Goal met"}"></i>` : "";
-      const eventHtml = events.map(event => {
-        const first = key === event.start || day.weekday === 0 || key === days[0].key;
-        const kind = event.calendarStatus && event.calendarStatus !== "confirmed" ? event.calendarStatus : event.type;
-        return `<span class="ev ${kind} ${first ? "" : "cont"}">${first ? esc(event.title) + (event.approx ? " (tentative construction)" : "") : ""}</span>`;
+    for (const [index, day] of days.entries()) {
+      const key = day.key, description = descriptions.get(key), filtered = view.filterDay(description, calendarView);
+      const bands = filtered.periods.map(period => {
+        const previous = descriptions.get(days[index - 1]?.key)?.periods.find(other => other.id === period.id);
+        const first = key === period.start || day.weekday === 0 || index === 0;
+        const last = key === period.displayThrough || day.weekday === 6 || index === days.length - 1;
+        const show = first || !previous || previous.status !== period.status ? "" : "band-continuation";
+        const title = period.status === "active" ? period.label + " — latest current-stage check; not a future forecast" : period.label + (period.status === "estimated" ? " — duration estimate only; no confirmed end date" : "");
+        return `<span class="period-band ${period.status} ${period.stage === 0 ? "no-restrictions" : ""} ${first ? "band-start" : ""} ${last ? "band-end" : ""} ${period.status === "active" && last ? "order-continues" : ""}"
+          data-period="${esc(period.id)}" data-certainty="${period.status}" title="${esc(title)}"><span class="band-wide ${show}">${esc(period.label)}</span><span class="band-short ${show}">${esc((period.stage ? "S" + period.stage : "None") + (period.status === "estimated" ? " ≈" : ""))}</span></span>`;
       }).join("");
-      html += `<button type="button" role="gridcell" class="cal-day ${day.other ? "other" : ""} ${key === todayKey() ? "today" : ""} ${key === selectedDay ? "selected" : ""} ${["unknown", "conflict"].includes(state.status) ? "uncertain" : ""}"
-        data-day="${key}" aria-label="${esc(key + ": " + state.message + (events.length ? "; " + events.map(event => event.title).join(", ") : ""))}"><span class="num">${day.day}</span>${dot}${eventHtml}</button>`;
+      const work = filtered.construction.map(event => {
+        const show = key === event.start || day.weekday === 0 || index === 0 ? "" : "band-continuation";
+        return `<span class="construction-band" title="${esc(event.title + (event.approx ? " — tentative construction" : ""))}"><span class="band-wide ${show}">${esc(event.title)}</span><span class="band-short ${show}">Work</span></span>`;
+      }).join("");
+      const goalText = window.DW_HOUSEHOLD_CALENDAR.label(filtered.goal);
+      const goalShort = { ok: "Met", over: "Over", unavailable: "No total", unconfigured: "Set goal" }[filtered.goal?.status] || "No data";
+      const dot = calendarView === "goals" ? `<span class="cal-goal-status ${filtered.goal?.status || "unrecorded"}">${["ok", "over"].includes(filtered.goal?.status) ? `<i class="dot ${filtered.goal.status}"></i>` : ""}<span class="band-wide">${esc(goalText)}</span><span class="band-short">${esc(goalShort)}</span></span>` : "";
+      const label = key + ": " + (calendarView === "goals" ? goalText : calendarView === "construction" ? filtered.construction.map(event => event.title + (event.approx ? " (tentative construction)" : "")).join(", ") || "No construction notice for this date" : description.title);
+      const uncertain = calendarView === "restrictions" && ["unknown", "conflict"].includes(description.displayStatus);
+      const content = calendarView === "restrictions" ? `<span class="restriction-track" aria-label="Water restrictions">${bands}</span>` : calendarView === "construction" ? `<span class="construction-track" aria-label="Construction">${work}</span>` : dot;
+      html += `<button type="button" role="gridcell" class="cal-day ${day.other ? "other" : ""} ${key === todayKey() ? "today" : ""} ${key === selectedDay ? "selected" : ""} ${uncertain ? "uncertain" : ""}"
+        data-day="${key}" aria-selected="${key === selectedDay}" aria-label="${esc(label)}"><span class="num">${day.day}</span>${content}</button>`;
     }
     $("#calendar").innerHTML = html;
-    $("#calendarCoverage").textContent = "Partial official history. Dashed dates have unknown or conflicting restriction data; they do not mean No Restrictions. Future estimates are not confirmed dates." +
-      (historyState.warning ? " " + historyState.warning : "") + (restrictionStatus?.stale ? " Current verification is stale." : "");
-    const open = historyRecords.filter(record => record.kind === "declaration" && record.end === null);
-    $("#calendarOutlook").innerHTML = open.map(record => `<p><strong>Open-ended declaration: ${esc(record.stage ? "Stage " + record.stage : "No Restrictions")} from ${esc(record.start)}.</strong> ${esc(record.expectedDuration || "No official end date confirmed.")} Future continuation is unverified. <a href="${esc(record.source)}" target="_blank" rel="noopener">Official announcement</a></p>`).join("");
+    const active = view.activeDeclaration(historyRecords, calendarDisplayOptions());
+    $("#calendarCoverage").textContent = calendarView === "goals" ? "Recorded household usage compared with your current goal. Activity logs are estimates; demo data is excluded. Missing days have no result." :
+      calendarView === "construction" ? "Construction dates come from curated City notices, not a live progress feed. Approximate end dates are planning estimates. They do not set water restrictions." :
+      (active ? "The current order is summarized above. Stripes are announcement-based estimates, not verified future stages or expiry dates." : "Unknown dates do not mean No Restrictions.") +
+      (historyState.warning ? " Some earlier updates may be missing." : "") + (restrictionStatus?.stale ? " The latest status could not be refreshed." : "");
+    const monthDays = days.filter(day => !day.other);
+    const ranges = calendarView === "restrictions" ? historyRecords.map(record => view.periodRange(record, historyRecords, calendarDisplayOptions())).filter(range => range && range.start <= monthDays.at(-1).key && (!range.displayThrough || range.displayThrough >= calCursor)) : [];
+    $("#calendarOutlook").innerHTML = ranges.map(range => {
+      const record = range.record;
+      const duration = (record.expectedDuration || "No duration announced").split(";")[0].replace(/\.$/, "") + ".";
+      if (range.active) return `<div class="cal-period-card"><strong>Duration estimate only: ${esc(duration)}</strong>${range.estimate ? `<span>Approximate planning period: ${esc(view.dateLabel(range.estimate.anchor || record.start))} – ${esc(view.dateLabel(range.estimate.latest))}.</span>` : ""}<span>${range.estimate?.latest < todayKey() ? "This estimate has passed. It does not lift the restriction." : "This estimate is not an expiry date."}</span><a href="${esc(record.estimateSource || record.declarationSource || record.source)}" target="_blank" rel="noopener">Official announcement</a></div>`;
+      const startLabel = record.status === "estimated" ? "Estimated start" : record.status === "scheduled" ? "Scheduled start" : "Official start";
+      return `<div class="cal-period-card"><strong>${esc((record.stage ? "Stage " + record.stage : "No Restrictions") + " period")}</strong><span>${esc(startLabel)}: ${esc(view.dateLabel(record.start))}</span><span>${esc(record.end ? "Official end: " + view.dateLabel(record.end) : record.expectedDuration || "No confirmed end date.")}</span><a href="${esc(record.source)}" target="_blank" rel="noopener">City announcement</a></div>`;
+    }).join("");
     renderCalDetail();
   }
   function renderCalDetail() {
-    const evs = eventsOn(selectedDay), used = dayTotal(selectedDay), b = budget();
-    const state = calendarStatus(selectedDay);
-    $("#calDetail").innerHTML = `<h4>${esc(historyCalendar.validDate(selectedDay) ? niceDate(selectedDay) : "Date unavailable")}</h4><p role="status">${esc(state.message)}</p>
-      ${evs.length ? `<ul>${evs.map((e) => `<li><strong>${esc(e.title)}${e.approx ? " (approx. dates)" : ""}</strong> — ${esc(e.detail)}
-        <br><em>What this means for you:</em> ${esc(e.type === "restriction" ? "Follow the stage rules stated for this event; estimated construction durations do not confirm restriction dates." : e.type === "construction" ? "Tentative construction timeline; does not establish water restriction dates." : "See the source for this dated information.")} <a href="${esc(e.source)}" target="_blank" rel="noopener">Source</a>${e.endSource ? ` · <a href="${esc(e.endSource)}" target="_blank" rel="noopener">Official end declaration</a>` : ""}</li>`).join("")}</ul>`
-        : "<p class='muted'>No additional sourced events on this date. Restriction status is stated above.</p>"}
-      ${used ? `<p>${esc(t(isMeasured(selectedDay) ? "cal.usedMeasured" : "cal.usedEstimated", { n: fmtL(used), g: fmtL(b) }))}</p>` : ""}
-      ${(() => { // who recorded what that day
-        const by = {};
-        dayEntries(selectedDay).forEach((e) => { by[e.by] = (by[e.by] || 0) + 1; });
-        S.readings.filter((r) => r.date === selectedDay).forEach((r) => { by[r.by] = (by[r.by] || 0) + 1; });
-        const list = Object.entries(by).map(([id, n]) => `${esc(firstName(id))} (${n})`).join(", ");
+    const view = window.DW_CALENDAR_VIEW, description = view.describeDay(selectedDay, historyRecords, calendarDisplayOptions(selectedDay));
+    const construction = calendarView === "construction" ? eventsOn(selectedDay).filter(event => event.type === "construction") : [];
+    const householdDay = window.DW_HOUSEHOLD_CALENDAR.dayUsage(selectedDay, S, budget());
+    const used = householdDay?.used, goal = budget(), valid = historyCalendar.validDate(selectedDay);
+    const records = calendarView === "restrictions" ? description.records : [];
+    const sources = records.flatMap(record => [
+      { url: record.source, label: "City announcement", checked: record.verifiedAt },
+      ...(record.declarationSource ? [{ url: record.declarationSource, label: "Official restriction declaration" }] : []),
+      ...(record.endSource ? [{ url: record.endSource, label: "Official end declaration" }] : []),
+      ...(record.verificationSource ? [{ url: record.verificationSource, label: "Latest City information" }] : [])
+    ]);
+    if (calendarView === "restrictions" && description.periods.some(period => period.status === "active")) sources.push(...(restrictionStatus?.sources || []).map(url => ({ url, label: "Current order check", checked: restrictionStatus.verifiedAt })));
+    sources.push(...construction.map(event => ({ url: event.source, label: "Construction notice" + (event.sourcePage ? " (page " + event.sourcePage + ")" : ""), checked: event.verifiedAt })));
+    const officialSources = sources.filter(source => /^https:\/\/(?:www\.calgary\.ca|calgary\.ca|newsroom\.calgary\.ca)\//i.test(source.url));
+    const uniqueSources = [...new Map(officialSources.map(source => [source.url, source])).values()];
+    const title = !valid ? "Date unavailable" : calendarView === "goals" ? householdDay?.status === "ok" ? "Household goal met" : householdDay?.status === "over" ? "Over household goal" : householdDay ? window.DW_HOUSEHOLD_CALENDAR.label(householdDay) : "No household usage recorded" : calendarView === "construction" ? construction.length ? "Construction notices" : "No construction notice for this date" : description.title;
+    $("#calDetail").innerHTML = `<h4>${esc(valid ? niceDate(selectedDay) : "Date unavailable")}</h4><p class="cal-summary-title" role="status">${esc(title)}</p>
+      ${calendarView === "restrictions" ? description.lines.map(line => `<p class="cal-summary-line">${esc(line)}</p>`).join("") : ""}
+      ${construction.length ? `<section class="cal-work-summary"><ul>${construction.map(event => `<li>${esc(event.title)} <span class="cal-work-badge">${event.approx ? "Tentative dates" : "Announced dates"}: ${esc(view.dateLabel(event.start))} – ${esc(view.dateLabel(event.end))}</span></li>`).join("")}</ul></section>` : ""}
+      ${construction.some(event => event.endDerived) ? "<p>These end dates are calculated from approximate durations; completion has not been confirmed.</p>" : ""}
+      ${uniqueSources.length ? `<details class="cal-sources"><summary>Official sources &amp; checked dates</summary><ul>${uniqueSources.map(source => `<li><a href="${esc(source.url)}" target="_blank" rel="noopener">${esc(source.label)}</a>${source.checked ? ` · Checked ${esc(view.dateLabel(historyCalendar.dayKey(source.checked)))} (Calgary time)` : ""}</li>`).join("")}</ul></details>` : ""}
+      ${calendarView === "goals" && used !== null && used !== undefined ? `<p>${esc(fmtL(used))} · ${householdDay.kind === "measured" ? "From recorded meter readings" : "Estimate from recorded activities"}${goal > 0 ? ` · Current goal: ${esc(fmtL(goal))}` : ""}.</p>` : ""}
+      ${calendarView === "goals" && householdDay?.status === "unavailable" ? "<p>A daily total needs valid readings on consecutive dates or recorded activities. A reading alone is not a daily total.</p>" : ""}
+      ${calendarView === "goals" ? (() => {
+        const recorded = {};
+        (householdDay?.entries || []).forEach(entry => { recorded[entry.by] = (recorded[entry.by] || 0) + 1; });
+        (householdDay?.readings || []).forEach(reading => { recorded[reading.by] = (recorded[reading.by] || 0) + 1; });
+        const list = Object.entries(recorded).map(([identifier, count]) => `${esc(firstName(identifier))} (${count})`).join(", ");
         return list ? `<p class="muted">${esc(t("cal.recordedBy"))} ${list}</p>` : "";
-      })()}`;
+      })() : ""}`;
   }
   $("#calendar").addEventListener("click", (e) => { const b = e.target.closest("[data-day]"); if (!b) return; selectedDay = b.dataset.day; renderCalendar(); });
+  $("#calendarViews").addEventListener("click", event => {
+    const button = event.target.closest("[data-calendar-view]");
+    if (button) setCalendarView(button.dataset.calendarView);
+  });
   // Month navigation: buttons, swipe/drag, trackpad, keyboard (PageUp/PageDown) — unlimited in both directions.
   const calEl = $("#calendar");
   function moveMonth(dir) {

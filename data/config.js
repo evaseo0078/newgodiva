@@ -52,10 +52,12 @@ window.DW_CONFIG = {
   // Calendar events (inclusive dates). "approx: true" shows "≈" because the City gave approximate durations.
   events: [
     { title: "Feeder main draining (33 Ave N.W.)", type: "construction", start: "2026-11-04", end: "2026-11-07", approx: true,
-      detail: "The existing feeder main is drained before tie-in construction (about four days).",
+      publishedDate: "2026-10-22", verifiedAt: "2026-11-08T08:27:37Z", sourcePage: 2, expectedDuration: "approximately four days", endDerived: true,
+      detail: "The notice announces a November 4 start for approximately four days. November 7 is a derived planning boundary, not a verified completion date.",
       source: "https://www.calgary.ca/content/dam/www/is/utilities-delivery/bearspaw-feeder-main/documents/october-22-construction-notice.pdf" },
     { title: "24-hour construction: 33 Ave & 89 St N.W.", type: "construction", start: "2026-11-14", end: "2026-11-23", approx: true,
-      detail: "Intersection fully closed. 24-hour construction for about 10 days.",
+      publishedDate: "2026-10-22", verifiedAt: "2026-11-08T08:27:37Z", sourcePage: 1, expectedDuration: "approximately 10 days", endDerived: true,
+      detail: "Construction is expected to begin November 14 for approximately 10 days. November 23 is a derived planning boundary, not a confirmed end date.",
       source: "https://www.calgary.ca/content/dam/www/is/utilities-delivery/bearspaw-feeder-main/documents/october-22-construction-notice.pdf" },
 
   ],
