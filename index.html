@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DropWise YYC — Every drop counts in Calgary</title>
+  <meta name="description" content="Track your household water use, see Calgary water restrictions and construction dates, and save water with your neighbours." />
+  <!-- Leaflet (open-source map library) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M24 3 C24 3 9 20 9 30 a15 15 0 0 0 30 0 C39 20 24 3 24 3z" fill="#fff"/>
+        <path d="M12 34 l7-9 5 6 4-4 8 7 a15 15 0 0 1 -24 0z" fill="#2b7bd6"/>
+        <path d="M19 25 l2.5 3 -2.5-1 -2.5 1z" fill="#fff"/>
+      </svg>
+      <div>
+        <strong>DropWise <span class="yyc">YYC</span></strong>
+        <span class="tagline" data-i18n="tagline">Calgary's community water saver</span>
+      </div>
+    </div>
+    <div id="statusPill" class="status-pill" role="status">Checking restrictions…</div>
+    <nav class="top-actions" aria-label="Quick actions">
+      <button id="inboxBtn" class="icon-btn" aria-haspopup="dialog" aria-controls="inbox">
+        <span aria-hidden="true">✉️</span><span class="sr-only">Alerts inbox</span>
+        <span id="inboxBadge" class="badge" hidden>0</span>
+      </button>
+      <label for="langSelect" class="sr-only">Language</label>
+      <select id="langSelect" class="lang-select" title="Language">
+        <option value="en">🌐 English</option>
+        <option value="ko">한국어</option>
+        <option value="zh">中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+      <div class="zoom" role="group" aria-label="Text size">
+        <button id="zoomOut" class="icon-btn" type="button" title="Smaller text" aria-label="Smaller text">A−</button>
+        <span id="zoomLevel" class="zoom-level" aria-live="polite">100%</span>
+        <button id="zoomIn" class="icon-btn" type="button" title="Larger text" aria-label="Larger text">A+</button>
+      </div>
+      <button id="userBtn" class="icon-btn user-btn" type="button"><img alt="" hidden referrerpolicy="no-referrer" /><span aria-hidden="true">👤</span> <span class="user-name"></span></button>
+      <button id="settingsBtn" class="icon-btn" title="Household settings">
+        <span aria-hidden="true">⚙️</span><span class="sr-only">Household settings</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Alerts inbox drawer -->
+  <aside id="inbox" class="inbox" aria-label="Alerts inbox" hidden>
+    <div class="inbox-head">
+      <h2 data-i18n="inbox.title">Alerts</h2>
+      <button id="inboxClose" class="icon-btn" aria-label="Close alerts">✕</button>
+    </div>
+    <p class="legend-row">
+      <span class="mail-tag city">⚫ City notice</span>
+      <span class="mail-tag warn">🔴 Usage warning</span>
+      <span class="mail-tag news">📰 Local news</span>
+    </p>
+    <ul id="inboxList" class="inbox-list"></ul>
+  </aside>
+
+  <main id="main">
+    <!-- Top alert banner: most important unread message -->
+    <section id="topAlert" class="top-alert" aria-live="polite" hidden></section>
+
+    <!-- Hero: Calgary skyline + city-wide water meter -->
+    <section class="hero" aria-labelledby="heroTitle">
+      <svg class="hero-art" viewBox="0 0 1200 460" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10294a"/><stop offset="1" stop-color="#2b6cb0"/></linearGradient>
+          <linearGradient id="arch" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffe2b3" stop-opacity="0"/><stop offset=".6" stop-color="#ffe2b3" stop-opacity=".45"/><stop offset="1" stop-color="#ffe2b3" stop-opacity="0"/></linearGradient>
+          <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0b1f38" stop-opacity=".85"/><stop offset=".55" stop-color="#0b1f38" stop-opacity=".25"/><stop offset="1" stop-color="#0b1f38" stop-opacity="0"/></linearGradient>
+        </defs>
+        <rect width="1200" height="460" fill="url(#sky)"/>
+        <path d="M300 150 Q800 60 1250 140 L1250 152 Q800 76 300 162z" fill="url(#arch)"/>
+        <path d="M0 330 L120 250 L200 300 L310 215 L420 300 L520 240 L630 310 L740 225 L850 300 L950 245 L1060 315 L1200 230 L1200 460 L0 460z" fill="#5b7fa8" opacity=".5"/>
+        <path d="M0 360 L160 300 L300 345 L450 290 L600 350 L760 300 L900 355 L1050 305 L1200 340 L1200 460 L0 460z" fill="#3f6690" opacity=".55"/>
+        <g fill="#0e2238">
+          <rect x="845" y="300" width="36" height="160"/><rect x="886" y="270" width="32" height="190"/><rect x="922" y="315" width="26" height="145"/>
+          <rect x="952" y="250" width="36" height="210"/><rect x="992" y="290" width="28" height="170"/><rect x="1024" y="320" width="40" height="140"/>
+          <rect x="1068" y="285" width="26" height="175"/><rect x="1098" y="330" width="38" height="130"/><rect x="1140" y="310" width="30" height="150"/>
+          <rect x="806" y="225" width="11" height="235"/><rect x="797" y="208" width="29" height="20" rx="6"/><rect x="809" y="188" width="4" height="22"/>
+          <rect x="760" y="335" width="40" height="125"/><rect x="722" y="350" width="34" height="110"/>
+        </g>
+        <path d="M0 425 Q300 400 600 428 T1200 420 L1200 460 L0 460z" fill="#3ea0e6"/>
+        <path d="M0 440 Q300 418 600 442 T1200 436" stroke="#bfe3ff" stroke-width="3" fill="none" opacity=".7"/>
+        <rect width="1200" height="460" fill="url(#fade)"/>
+      </svg>
+      <div class="hero-inner">
+        <p class="kicker" data-i18n="hero.kicker">YYC · Stage 4 water restrictions</p>
+        <h1 id="heroTitle" data-i18n="hero.title">Every drop counts, Calgary.</h1>
+        <p class="hero-sub" data-i18n="hero.sub2">A water emergency is stressful. DropWise YYC helps every household <strong>stay healthy, stay calm and save water together</strong> with family and neighbours — so Calgary stays under 500 million litres a day while the Bearspaw South Feeder Main is repaired.</p>
+        <ul class="pillars" aria-label="What DropWise helps with">
+          <li><a href="#healthTitle"><span aria-hidden="true">💧</span> <span data-i18n="pillar.health">Health</span></a></li>
+          <li><a href="#hhTitle"><span aria-hidden="true">🤝</span> <span data-i18n="pillar.connect">Social connection</span></a></li>
+          <li><a href="#feelTitle"><span aria-hidden="true">🌿</span> <span data-i18n="pillar.well">Well-being</span></a></li>
+        </ul>
+        <div class="city-meter" role="group" aria-labelledby="meterLabel">
+          <div class="meter-head"><span id="meterLabel" data-i18n="hero.meter">City-wide water use</span><span id="meterZone" class="zone"></span></div>
+          <div class="meter-track" aria-hidden="true"><div id="meterFill" class="meter-fill"></div><div class="meter-limit"></div></div>
+          <p id="meterText" class="meter-text"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 0. Our household (online, shared by everyone who lives there) -->
+    <section class="section" id="householdSection" aria-labelledby="hhTitle">
+      <div class="section-head">
+        <h2 id="hhTitle" data-i18n="hh.title">Our household</h2>
+        <p class="muted" data-i18n="hh.sub">Everyone at home logs on their own phone — DropWise adds it up for the whole household.</p>
+      </div>
+      <article class="card hh-card" id="hhCard"></article>
+      <article class="card together-card" aria-labelledby="togetherTitle">
+        <h3 class="card-title" id="togetherTitle" data-i18n="tog.title">🎉 Together this week</h3>
+        <div id="togetherStats" class="together-stats"></div>
+        <ul id="kudosList" class="kudos-list" aria-live="polite"></ul>
+        <p class="fineprint" data-i18n="tog.fine">Small wins count. DropWise celebrates what your household does well — it never shames anyone for using water they need.</p>
+      </article>
+    </section>
+
+    <!-- 1. Today -->
+    <section class="section" aria-labelledby="todayTitle">
+      <div class="section-head">
+        <h2 id="todayTitle" data-i18n="today.title">Your household today</h2>
+        <p id="householdLine" class="muted"></p>
+      </div>
+
+      <article class="card today-card tank-card">
+        <h3 class="card-title" data-i18n="today.card">Today's usage</h3>
+        <div class="today-grid">
+          <div class="tank-wrap">
+            <svg id="tankSvg" viewBox="0 0 220 260" role="img" aria-labelledby="tankLabel">
+              <title id="tankLabel">Water tank</title>
+              <defs>
+                <clipPath id="jarClip">
+                  <path d="M70 20 h80 a8 8 0 0 1 8 8 v22 c30 6 44 22 44 46 v124 c0 18 -14 30 -32 30 h-120 c-18 0 -32 -12 -32 -30 v-124 c0 -24 14 -40 44 -46 v-22 a8 8 0 0 1 8 -8z" />
+                </clipPath>
+              </defs>
+              <g clip-path="url(#jarClip)">
+                <rect x="0" y="0" width="220" height="260" fill="#eef6fd" />
+                <g id="water" class="water">
+                  <path class="wave" d="M-220 0 q27.5 -10 55 0 t55 0 t55 0 t55 0 t55 0 t55 0 t55 0 t55 0 v300 h-440z" />
+                </g>
+              </g>
+              <path class="jar" d="M70 20 h80 a8 8 0 0 1 8 8 v22 c30 6 44 22 44 46 v124 c0 18 -14 30 -32 30 h-120 c-18 0 -32 -12 -32 -30 v-124 c0 -24 14 -40 44 -46 v-22 a8 8 0 0 1 8 -8z" />
+              <line x1="18" y1="80" x2="202" y2="80" class="limit-line" />
+              <text x="110" y="74" class="limit-text" text-anchor="middle">daily goal</text>
+              <g id="overflow" class="overflow" hidden>
+                <circle cx="22" cy="40" r="5" /><circle cx="198" cy="40" r="5" />
+                <circle cx="30" cy="20" r="4" /><circle cx="190" cy="20" r="4" />
+              </g>
+              <text id="tankValue" x="110" y="176" text-anchor="middle" class="tank-value">0%</text>
+              <text id="tankSub" x="110" y="198" text-anchor="middle" class="tank-sub">of goal</text>
+            </svg>
+          </div>
+          <div class="today-numbers">
+            <p class="big-number"><span id="usedBig">0</span> L</p>
+            <p id="measureBadge" class="measure-badge"></p>
+            <label class="goal-line"><span data-i18n="today.of">of</span> <input id="goalInput" type="number" min="20" max="5000" step="10" inputmode="numeric" aria-label="Daily goal in litres" /> <span data-i18n="today.goal">L daily goal</span></label>
+            <p id="leftLine" class="left-line"></p>
+            <p id="compareLine" class="compare-line"></p>
+            <p id="tankStatus" class="tank-status" aria-live="polite"></p>
+            <p class="tank-legend" aria-hidden="true"><span><i style="background:#34a853"></i><span data-i18n="legend.safe">Safe</span></span><span><i style="background:#f6c026"></i>80–100%</span><span><i style="background:#e53935"></i><span data-i18n="legend.over">Over</span></span></p>
+          </div>
+          <div class="donut-wrap">
+            <svg id="donut" viewBox="0 0 200 200" role="img" aria-labelledby="donutLabel"><title id="donutLabel">Water use by category</title></svg>
+            <ul id="donutLegend" class="legend"></ul>
+          </div>
+        </div>
+
+        <div id="quickAdd" class="quick-add" role="group" aria-label="Add water use"></div>
+        <div class="history-bar">
+          <button id="undoBtn" class="glass-btn" type="button" disabled>↶ <span data-i18n="btn.undo">Undo</span> <span id="undoLabel" class="sr-only"></span></button>
+          <button id="redoBtn" class="glass-btn" type="button" disabled>↷ <span data-i18n="btn.redo">Redo</span></button>
+          <button id="demoBtn" class="link-btn" type="button" data-i18n="btn.demo">Load demo day</button>
+          <button id="resetDayBtn" class="link-btn" type="button" data-i18n="btn.clearToday">Clear today</button>
+          <span id="historyMsg" class="muted small" aria-live="polite"></span>
+        </div>
+        <details class="today-log">
+          <summary data-i18n="today.log">Today's log (<span id="logCount">0</span>) — tap ✕ to remove one item</summary>
+          <ul id="todayLog"></ul>
+        </details>
+
+        <div class="meter-box">
+          <h4><span data-i18n="meter.title">Water meter reading</span> <small class="muted" data-i18n="meter.sub">(measured — the only exact number)</small></h4>
+          <div class="meter-entry">
+            <div class="meter-form-grid">
+              <label class="mf mf-value"><span data-i18n="meter.value">Number on your meter</span>
+                <input id="meterValue" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 1234.567" data-i18n-ph="meter.valuePh" />
+              </label>
+              <label class="mf"><span data-i18n="meter.unit">Unit (printed on the meter)</span>
+                <select id="meterUnit">
+                  <option value="m3">m³ — cubic metres</option>
+                  <option value="ft3">ft³ — cubic feet</option>
+                </select>
+              </label>
+              <label class="mf"><span data-i18n="meter.time">Time you read it</span>
+                <input id="meterTime" type="datetime-local" />
+              </label>
+            </div>
+            <div class="meter-actions">
+              <button id="scanBtn" class="glass-btn scan" type="button" data-i18n="meter.scan">📷 Scan meter photo</button>
+              <input id="meterPhoto" type="file" accept="image/*" capture="environment" hidden />
+              <button id="reconcileBtn" class="btn-primary" type="button" data-i18n="meter.save">Save reading</button>
+            </div>
+          </div>
+          <p class="dial-total"><span data-i18n="meter.equals">That's</span> <strong id="meterLitresPreview">—</strong> <span data-i18n="meter.onMeterTotal">on the meter in total</span> <span id="meterDiffPreview" class="muted"></span></p>
+          <p id="scanMsg" class="scan-msg" aria-live="polite"></p>
+          <p id="meterInfo" class="meter-info" aria-live="polite"></p>
+          <table class="readings">
+            <caption data-i18n="meter.history">Your recent readings</caption>
+            <thead><tr><th scope="col" data-i18n="meter.colTime">Time</th><th scope="col" data-i18n="meter.colReading">Reading</th><th scope="col" data-i18n="meter.colDiff">Change since previous</th><th scope="col" data-i18n="meter.colBy">By</th></tr></thead>
+            <tbody id="readingsBody"></tbody>
+          </table>
+          <label class="toggle">
+            <input type="checkbox" id="autoShare" />
+            <span id="shareLabel" data-i18n="share.join">Join the quadrant challenge — share my daily litres per person with my quadrant's ranking (no name, address or community is shown)</span>
+          </label>
+          <p id="shareMsg" class="fineprint" aria-live="polite"></p>
+
+          <section class="meter-guide" aria-labelledby="guideTitle">
+            <h4 id="guideTitle" data-i18n="guide.title">How to read your water meter</h4>
+            <div class="guide-grid">
+              <svg class="meter-art" viewBox="0 0 320 240" role="img" aria-labelledby="meterArtTitle">
+                <title id="meterArtTitle">Drawing of a water meter: black number wheels for cubic metres, red wheels for litres, and a small leak indicator</title>
+                <rect x="60" y="176" width="200" height="30" rx="6" fill="#8a97a6"/>
+                <rect x="20" y="180" width="50" height="22" rx="4" fill="#6d7a89"/><rect x="250" y="180" width="50" height="22" rx="4" fill="#6d7a89"/>
+                <circle cx="160" cy="108" r="96" fill="#5d6b7a"/>
+                <circle cx="160" cy="108" r="84" fill="#eef3f7" stroke="#2f3b48" stroke-width="3"/>
+                <text x="160" y="56" text-anchor="middle" font-size="13" font-weight="700" fill="#2f3b48">m³</text>
+                <g font-family="ui-monospace, Menlo, monospace" font-size="20" font-weight="800" text-anchor="middle">
+                  <rect x="76" y="66" width="168" height="36" rx="5" fill="#fff" stroke="#2f3b48" stroke-width="2"/>
+                  <rect x="80" y="70" width="19" height="28" fill="#111"/><text x="89.5" y="91" fill="#fff">0</text>
+                  <rect x="101" y="70" width="19" height="28" fill="#111"/><text x="110.5" y="91" fill="#fff">1</text>
+                  <rect x="122" y="70" width="19" height="28" fill="#111"/><text x="131.5" y="91" fill="#fff">2</text>
+                  <rect x="143" y="70" width="19" height="28" fill="#111"/><text x="152.5" y="91" fill="#fff">3</text>
+                  <rect x="164" y="70" width="19" height="28" fill="#111"/><text x="173.5" y="91" fill="#fff">4</text>
+                  <rect x="186" y="70" width="17" height="28" fill="#d32f2f"/><text x="194.5" y="91" fill="#fff">5</text>
+                  <rect x="205" y="70" width="17" height="28" fill="#d32f2f"/><text x="213.5" y="91" fill="#fff">6</text>
+                  <rect x="224" y="70" width="17" height="28" fill="#d32f2f"/><text x="232.5" y="91" fill="#fff">7</text>
+                </g>
+                <path d="M160 128 l10 18 h-20z" fill="#d32f2f"/><circle cx="160" cy="140" r="17" fill="none" stroke="#2f3b48" stroke-width="2"/>
+              </svg>
+              <ol class="guide-steps">
+                <li data-i18n="guide.s1"><strong>Find it.</strong> Usually in the basement or utility room, near where the water pipe comes into your home.</li>
+                <li data-i18n="guide.s2"><strong>Check the unit.</strong> Look for <strong>m³</strong> (cubic metres) or <strong>ft³ / CU FT</strong> (cubic feet) printed on the face, and pick it in the Unit box.</li>
+                <li data-i18n="guide.s3"><strong>Read the numbers left to right.</strong> The black wheels are whole units.</li>
+                <li data-i18n="guide.s4"><strong>Red or smaller digits come after the decimal point.</strong> Example: black 01234 + red 567 → type <strong>1234.567</strong>.</li>
+                <li data-i18n="guide.s5"><strong>Skip the little spinning triangle or star</strong> — that's the leak indicator, not part of the number.</li>
+                <li data-i18n="guide.s6"><strong>Press Save reading.</strong> The time is filled in for you — change it if you read the meter earlier. Or tap 📷 to fill the number from a photo, then check it.</li>
+                <li data-i18n="guide.s7"><strong>Same time every day</strong> (for example after breakfast) gives the most accurate daily number.</li>
+              </ol>
+            </div>
+            <p class="guide-tip" data-i18n="guide.leak">💧 <strong>Leak check:</strong> don't use any water for 30 minutes. If the red numbers or the leak indicator move, you may have a leak — a running toilet is the most common cause.</p>
+            <p class="fineprint" data-i18n="guide.privacy">🔒 Photo privacy: your photo is shrunk on your device, sent once to read the number, then thrown away. It is never saved — not on this device, not on our server.</p>
+            <p class="fineprint" data-i18n="guide.note">Meters differ — some show cubic metres, some cubic feet, and the number of digits varies. DropWise converts every reading to litres (1 m³ = 1,000 L, 1 ft³ ≈ 28.3 L). The drawing is an example, not a specific meter model.</p>
+          </section>
+        </div>
+
+        <p id="insight" class="insight"></p>
+        <p id="benchmark" class="benchmark" hidden></p>
+        <p class="fineprint" data-i18n="today.fine">Buttons and the shower timer give <strong>estimates</strong> (City of Calgary figures). The water meter gives the <strong>measured</strong> total. Estimates are never added on top of the meter — the meter already includes everything.</p>
+      </article>
+    </section>
+
+    <!-- Health & well-being -->
+    <section class="section" id="healthSection" aria-labelledby="healthTitle">
+      <div class="section-head">
+        <h2 id="healthTitle" data-i18n="health.title">Stay healthy &amp; calm</h2>
+        <p class="muted" data-i18n="health.sub">Save the water you can — never the water your health needs.</p>
+      </div>
+      <div class="grid-2">
+        <article class="card essentials-card">
+          <h3 class="card-title" data-i18n="health.essTitle">💧 Essentials first — never cut these</h3>
+          <ul class="ess-list">
+            <li><span aria-hidden="true">🥤</span> <span data-i18n="health.e1">Drinking water — drink whenever you're thirsty, more on hot or active days</span></li>
+            <li><span aria-hidden="true">🍲</span> <span data-i18n="health.e2">Cooking and washing food</span></li>
+            <li><span aria-hidden="true">🧼</span> <span data-i18n="health.e3">Handwashing and brushing teeth</span></li>
+            <li><span aria-hidden="true">💊</span> <span data-i18n="health.e4">Medical needs, babies, people who are sick, and pets</span></li>
+          </ul>
+          <div id="healthCheck" class="health-check" aria-live="polite"></div>
+          <p class="fineprint" data-i18n="health.fine">Why 50 L? The World Health Organization says about 50–100 litres per person per day covers basic needs with few health concerns. DropWise warns you if your home goes below that.</p>
+        </article>
+        <article class="card feel-card">
+          <h3 class="card-title" id="feelTitle" data-i18n="feel.title">🌿 How are you feeling about the restrictions?</h3>
+          <div class="feel-btns" role="group" aria-labelledby="feelTitle">
+            <button type="button" class="glass-btn" data-feel="ok"><span aria-hidden="true">😌</span> <span data-i18n="feel.ok">I'm fine</span></button>
+            <button type="button" class="glass-btn" data-feel="worried"><span aria-hidden="true">😟</span> <span data-i18n="feel.worried">A bit worried</span></button>
+            <button type="button" class="glass-btn" data-feel="over"><span aria-hidden="true">😩</span> <span data-i18n="feel.over">Overwhelmed</span></button>
+          </div>
+          <div id="feelReply" class="feel-reply" aria-live="polite"></div>
+          <div class="help-lines">
+            <p><strong data-i18n="feel.helpTitle">Need to talk to someone? Free, 24/7:</strong></p>
+            <ul>
+              <li><a href="tel:4032664357">Distress Centre Calgary — 403-266-HELP (4357)</a> <span class="muted" data-i18n="feel.dcc">call or text</span></li>
+              <li><a href="tel:211">211 Alberta</a> <span class="muted" data-i18n="feel.211">community, health and social services (call or text 211)</span></li>
+              <li><a href="tel:311">311 Calgary</a> <span class="muted" data-i18n="feel.311">water service and restriction questions</span></li>
+            </ul>
+          </div>
+          <p class="fineprint" data-i18n="feel.fine">Your answer is not saved or shared — it only changes the message on this screen.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Stage 4 at a glance -->
+    <section class="section" aria-labelledby="rulesTitle">
+      <div class="section-head">
+        <h2 id="rulesTitle" data-i18n="rules.title">Stage 4 at a glance</h2>
+        <p class="muted"><span data-i18n="rules.sub">What you can and can't do right now, in plain words.</span> <span id="fineChip" class="fine-chip"></span></p>
+      </div>
+      <div class="rules-grid">
+        <article class="card rule-card no"><h3 data-i18n="rules.no">🚫 Not allowed outdoors</h3><ul id="rulesNo"></ul></article>
+        <article class="card rule-card yes"><h3 data-i18n="rules.yes">✅ Still allowed</h3><ul id="rulesYes"></ul></article>
+        <article class="card rule-card home"><h3 data-i18n="rules.home">🏠 How to help indoors</h3><ul id="rulesHome"></ul></article>
+      </div>
+      <p class="fineprint">Source: <a id="rulesSource" href="#" target="_blank" rel="noopener">City of Calgary — Stage 4 water restrictions</a>. Questions? Call 311.</p>
+    </section>
+
+    <!-- 3. Calendar -->
+    <section class="section" aria-labelledby="calTitle">
+      <div class="section-head">
+        <h2 id="calTitle" data-i18n="cal.title">Restriction &amp; construction calendar</h2>
+        <p class="muted" data-i18n="cal.sub">Official City of Calgary dates. Dots show whether your household met its daily goal.</p>
+      </div>
+      <article class="card">
+        <div class="cal-head">
+          <button id="calPrev" class="icon-btn" aria-label="Previous month">‹</button>
+          <div class="cal-title">
+            <h3 id="calMonth" class="cal-month" aria-live="polite"></h3>
+            <span class="cal-hint" data-i18n="cal.hint">Swipe, drag or use ‹ › to change month</span>
+          </div>
+          <div class="cal-nav">
+            <button id="calToday" class="cal-today" type="button" data-i18n="cal.today">Today</button>
+            <button id="calNext" class="icon-btn" aria-label="Next month">›</button>
+          </div>
+        </div>
+        <p class="legend-row">
+          <span class="ev-key restriction" data-i18n="cal.restr">Water restrictions</span>
+          <span class="ev-key construction" data-i18n="cal.constr">Construction</span>
+          <span class="ev-key info" data-i18n="cal.info">No restrictions / info</span>
+          <span class="dot-key"><i class="dot ok"></i> Goal met</span>
+          <span class="dot-key"><i class="dot over"></i> Over goal</span>
+        </p>
+        <div id="calendar" class="calendar" role="grid" aria-labelledby="calMonth"></div>
+        <div id="calDetail" class="cal-detail" aria-live="polite"><p class="muted">Select a day to see what it means for you.</p></div>
+      </article>
+    </section>
+
+    <!-- 4. Shower challenge -->
+    <section class="section" aria-labelledby="showerTitle">
+      <div class="section-head">
+        <h2 id="showerTitle" data-i18n="shower.title">Shower challenge</h2>
+        <p class="muted" data-i18n="shower.sub">Tap start before your shower and stop after. The City asks for about 3 minutes.</p>
+      </div>
+      <div class="grid-2">
+        <article class="card shower-card">
+          <div class="timer" role="timer" aria-live="off">
+            <svg viewBox="0 0 120 120" class="timer-ring" aria-hidden="true">
+              <circle cx="60" cy="60" r="52" class="ring-bg" />
+              <circle id="ringFg" cx="60" cy="60" r="52" class="ring-fg" />
+            </svg>
+            <div class="timer-text">
+              <span id="timerDisplay">00:00</span>
+              <small id="timerLitres">0 L</small>
+            </div>
+          </div>
+          <button id="showerBtn" class="btn-primary big">▶ Start shower</button>
+          <p id="showerMsg" class="tip" aria-live="polite"></p>
+          <h3 class="mini-title" data-i18n="shower.progress">📈 Your progress</h3>
+          <p id="myStats" class="my-stats"></p>
+          <p class="fineprint" data-i18n="shower.fine">Showers are timed on this device only. The City asks for about 3-minute showers — each minute saved can save up to 8 L.</p>
+        </article>
+        <article class="card">
+          <h3 class="card-title" data-i18n="shower.recent">Recent showers</h3>
+          <ul id="showerHistory" class="history"></ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- 4b. Quadrant ranking (map) -->
+    <section class="section" aria-labelledby="rankTitle">
+      <div class="section-head">
+        <h2 id="rankTitle" data-i18n="rank.title">Quadrant Water Challenge</h2>
+        <p class="muted" data-i18n="rank.sub">NW vs NE vs SW vs SE — which part of Calgary is saving the most water this week? Lower litres per person = better.</p>
+      </div>
+      <article class="card">
+        <div id="rankBanner" class="rank-banner" hidden></div>
+        <div class="rank-summary" id="rankSummary"></div>
+        <div class="map-rank">
+          <figure class="map-wrap">
+            <div id="cityMap" class="city-map" role="region" aria-label="Map of Calgary coloured by quadrant water use. The same ranking is listed next to the map."></div>
+            <figcaption class="map-legend">
+              <span><i style="background:#2e7d32"></i><span data-i18n="rank.low">Lowest use</span></span><span><i style="background:#f6c026"></i></span><span><i style="background:#fb8c00"></i></span><span><i style="background:#e53935"></i><span data-i18n="rank.high">Highest use</span></span>
+              <span id="mapNote" class="muted"></span>
+            </figcaption>
+          </figure>
+          <div>
+            <ol id="quadRank" class="quad-rank"></ol>
+            <div class="row-actions">
+              <a id="rankJoin" class="btn-discord" href="#" target="_blank" rel="noopener" hidden>See #water-challenge on Discord</a>
+              <button id="rankRefresh" class="link-btn" type="button" data-i18n="rank.refresh">Refresh</button>
+            </div>
+          </div>
+        </div>
+        <p class="fineprint" data-i18n="rank.how">How it's calculated: households that join the challenge share their daily litres per person from their own water-meter readings. Each quadrant's score is the average of this week's reports; the change compares with last week. Discord members can also join by typing <code>NW 165</code> (quadrant + litres per person) in #water-challenge.</p>
+        <p class="fineprint">Map tiles © OpenStreetMap contributors © CARTO, via Leaflet. Community boundaries: City of Calgary Open Data — Community District Boundaries. Quadrants are assigned from each community's location (approximate near the boundaries). Click the map to enable scroll-zoom.</p>
+      </article>
+    </section>
+
+    <!-- 5. Community (Discord) -->
+    <section class="section" aria-labelledby="commTitle">
+      <div class="section-head">
+        <h2 id="commTitle" data-i18n="comm.title">Calgary Water Community</h2>
+        <p class="muted" data-i18n="comm.sub">Talk with neighbours, share tips and help each other through the restrictions — on Discord.</p>
+      </div>
+      <div class="grid-2">
+        <article class="card">
+          <div id="discordServer" class="discord-server">
+            <span class="discord-logo" aria-hidden="true">💬</span>
+            <div><strong id="discordName">DropWise YYC Community</strong><br>
+              <span id="discordOnline" class="muted">Connecting to Discord…</span></div>
+            <a id="discordJoin" class="btn-discord" href="#" target="_blank" rel="noopener" hidden>Join on Discord</a>
+          </div>
+          <ul id="discordChannels" class="channel-list"></ul>
+          <h3 class="mini-title" data-i18n="comm.share">Share a water-saving tip</h3>
+          <form id="tipForm" class="tip-form">
+            <label for="tipText" class="sr-only">Your tip</label>
+            <textarea id="tipText" maxlength="280" rows="3" placeholder="e.g. We keep a bucket in the shower to catch cold water for plants." data-i18n-ph="comm.ph"></textarea>
+            <div class="tip-row">
+              <small id="tipCount" class="muted">0 / 280</small>
+              <button class="btn-primary" type="submit" data-i18n="comm.post">Post to #water-tips</button>
+            </div>
+            <p id="tipMsg" class="fineprint" aria-live="polite"></p>
+          </form>
+          <p class="fineprint" data-i18n="comm.fine">Posts are public in our Discord and show only your community name. Please don't share your address or personal details. Moderated by the DropWise team.</p>
+        </article>
+        <article class="card">
+          <h3 class="card-title" data-i18n="comm.latest">Latest from #water-tips</h3>
+          <ul id="discordFeed" class="feed" aria-live="polite"><li class="muted">Loading community posts…</li></ul>
+          <h3 class="mini-title" data-i18n="comm.311">Water issues reported to 311 near you</h3>
+          <div id="open311" class="open311" aria-live="polite"><p class="muted">Loading City 311 data…</p></div>
+          <p class="fineprint">Source: City of Calgary Open Data — 311 Service Requests (Water Services, last 30 days).</p>
+        </article>
+      </div>
+      <article class="card neighbour-card" aria-labelledby="nbTitle">
+        <h3 class="card-title" id="nbTitle" data-i18n="nb.title">🏘️ Check on a neighbour</h3>
+        <p data-i18n="nb.body">Not everyone sees city alerts. Seniors, newcomers and neighbours who don't read English may not know the rules — or may be skipping water they need. A quick knock or text helps.</p>
+        <ul class="nb-steps">
+          <li data-i18n="nb.s1">👋 Ask if they know about Stage 4 and if they need anything.</li>
+          <li data-i18n="nb.s2">🖨️ Leave a large-print card with the rules (in the language chosen at the top).</li>
+          <li data-i18n="nb.s3">💧 Remind them: drinking, cooking and hygiene water are never the thing to cut.</li>
+        </ul>
+        <div class="row-actions">
+          <button id="nbPrint" class="btn-primary" type="button" data-i18n="nb.print">Print a neighbour card</button>
+          <button id="nbShare" class="glass-btn" type="button" data-i18n="nb.share">Send by text / copy</button>
+        </div>
+        <p id="nbMsg" class="fineprint" aria-live="polite"></p>
+      </article>
+    </section>
+
+    <!-- 6. Chatbot -->
+    <section class="section" aria-labelledby="chatTitle">
+      <div class="section-head">
+        <h2 id="chatTitle" data-i18n="chat.title">Ask DropBot</h2>
+        <p class="muted" data-i18n="chat.sub">Questions about restrictions, your household, or saving water. You can ask in any language.</p>
+      </div>
+      <article class="card chat-card">
+        <div id="chatLog" class="chat-log" aria-live="polite"></div>
+        <div id="chips" class="chips"></div>
+        <form id="chatForm" class="chat-form">
+          <label for="chatInput" class="sr-only">Your question</label>
+          <input id="chatInput" type="text" autocomplete="off" placeholder="e.g. How often should a family of 5 do laundry?" data-i18n-ph="chat.ph" />
+          <button class="btn-primary" type="submit" data-i18n="chat.send">Send</button>
+        </form>
+        <p class="fineprint" data-i18n="chat.fine">DropBot gives general guidance, not official City advice. Always check <a href="https://www.calgary.ca/savewater" target="_blank" rel="noopener">calgary.ca/savewater</a> or call 311.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p class="footer-brand" data-i18n="foot.brand">💧 DropWise <span class="yyc">YYC</span> — made in Calgary, for Calgarians.</p>
+      <p data-i18n="foot.official"><strong>Community project — not an official City of Calgary website.</strong> For official information visit <a href="https://www.calgary.ca/savewater" target="_blank" rel="noopener">calgary.ca/savewater</a> or call 311.</p>
+      <p><strong>Data sources:</strong> City of Calgary (Stage 4 restrictions, construction notices, Open Data: community boundaries &amp; 311 requests) · Statistics Canada WDS (table 38-10-0271-01) · CBC Calgary news feed · Discord.</p>
+      <p data-i18n="foot.privacy"><strong>Privacy:</strong> No account, no tracking. Your logs stay in this browser unless you choose to join the community challenge.</p>
+    </div>
+  </footer>
+
+  <!-- Settings dialog -->
+  <dialog id="settingsDialog" aria-labelledby="settingsTitle">
+    <form method="dialog" id="settingsForm" class="settings-form">
+      <h2 id="settingsTitle" data-i18n="set.title">Set up your household</h2>
+      <p class="muted" data-i18n="set.sub">We use this to size your daily water tank. Stored only on this device.</p>
+      <label><span data-i18n="set.people">People in your household</span>
+        <input id="setHousehold" type="number" min="1" max="15" value="3" required />
+      </label>
+      <label><span data-i18n="set.community">Your community</span>
+        <select id="setCommunity"></select>
+      </label>
+      <label><span data-i18n="set.goal">Daily goal per person (litres)</span>
+        <input id="setPerPerson" type="number" min="30" max="500" step="5" required />
+      </label>
+      <p id="perPersonNote" class="fineprint"></p>
+      <button type="button" id="useBenchmarkBtn" class="link-btn" hidden></button>
+      <div class="row-actions end">
+        <button class="btn-primary" value="save" data-i18n="set.save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="data/config.js"></script>
+  <script src="data/i18n.js"></script>
+  <script src="cloud.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

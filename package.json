@@ -1,0 +1,11 @@
+{
+  "name": "dropwise-yyc",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve"
+  },
+  "dependencies": {
+    "@google/genai": "^0.1.2"
+  }
+}
