@@ -710,6 +710,7 @@
     btn.hidden = false;
     btn.textContent = `Use the Alberta average (${b.litres} L) as my goal`;
     btn.onclick = () => { $("#setPerPerson").value = b.litres; };
+    renderFacts();
   }
 
   /* ---------- community: Discord ---------- */
@@ -1324,6 +1325,53 @@
     } catch { /* cancelled */ }
   });
 
+
+  /* ---------- water & health facts (WHO GHO, UN SDG, StatCan, Open Data Canada, Open Referral) ---------- */
+  let SERVICES = null, svcFilter = "all";
+  async function loadHealthFacts() {
+    let d = null;
+    try { const r = await fetch("/api/health"); if (r.ok) d = await r.json(); } catch { /* offline */ }
+    S.facts = d; renderFacts();
+  }
+  function renderFacts() {
+    const box = $("#factStats"); if (!box) return;
+    const d = S.facts || {}, tiles = [];
+    if (d.whoCanada) tiles.push([`${d.whoCanada.value}%`, t("facts.whoCanada", { y: d.whoCanada.year }), "WHO GHO"]);
+    else if (d.sdgCanada) tiles.push([`${d.sdgCanada.value}%`, t("facts.whoCanada", { y: d.sdgCanada.year }), "UN SDG 6.1.1"]);
+    if (d.sdgWorld) {
+      const lack = Math.round(100 - d.sdgWorld.value);
+      tiles.push([`${lack}%`, t("facts.worldLack", { y: d.sdgWorld.year }), "UN SDG 6.1.1"]);
+    }
+    const ab = S.benchmark?.alberta;
+    if (ab) tiles.push([`${ab.litres} L`, t("facts.alberta", { y: ab.year }), "Statistics Canada"]);
+    tiles.push([`${HEALTH_MIN}–100 L`, t("facts.whoNeed"), "WHO"]);
+    box.innerHTML = tiles.map(([v, l, src]) => `<div class="fact"><b>${esc(v)}</b><span>${esc(l)}</span><small>${esc(src)}</small></div>`).join("") +
+      (!d.whoCanada && !d.sdgWorld ? `<p class="fineprint">${esc(t("facts.offline"))}</p>` : "");
+    const gov = $("#govDatasets");
+    gov.innerHTML = d.datasets?.length
+      ? d.datasets.map((x) => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a><small class="muted">${esc(x.org)}${x.updated ? " · " + esc(x.updated) : ""}</small></li>`).join("")
+      : `<li class="muted">${esc(t("facts.govOffline"))} <a href="https://open.canada.ca/data/en/dataset?q=drinking+water" target="_blank" rel="noopener">open.canada.ca</a></li>`;
+  }
+  async function loadServices() {
+    try { const r = await fetch("data/services.json"); SERVICES = r.ok ? await r.json() : null; } catch { SERVICES = null; }
+    renderServices();
+  }
+  function renderServices() {
+    const ul = $("#svcList"); if (!ul || !SERVICES) return;
+    const orgs = Object.fromEntries(SERVICES.organizations.map((o) => [o.id, o]));
+    const list = SERVICES.services.filter((x) => svcFilter === "all" || x.category === svcFilter);
+    ul.innerHTML = list.map((x) => {
+      const o = orgs[x.organization_id] || {}, ph = x.phones?.[0];
+      return `<li><div><strong>${esc(o.name || "")}</strong> — ${esc(x.name)}<br><small class="muted">${esc(x.description)}</small></div>
+        ${ph ? `<a class="svc-call" href="tel:${esc(ph.number.replace(/[^0-9]/g, ""))}" title="${esc(ph.description)}">📞 ${esc(ph.number)}</a>` : ""}</li>`;
+    }).join("");
+  }
+  document.querySelectorAll("[data-svc]").forEach((b) => b.addEventListener("click", () => {
+    svcFilter = b.dataset.svc;
+    document.querySelectorAll("[data-svc]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    renderServices();
+  }));
+
   /* ---------- our household (online) ---------- */
   const fmtCode = (c) => (c ? `${c.slice(0, 4)}-${c.slice(4)}` : "");
   const online = () => CLOUD.enabled && SESSION?.provider === "supabase";
@@ -1509,7 +1557,7 @@
   });
 
   /* ---------- boot ---------- */
-  function renderAll() { $("#demoBtn").hidden = cloudOn(); renderStatus(); renderMeterInfo(); renderTank(); renderTodayLog(); renderHistoryButtons(); renderDonut(); renderCalendar(); renderShowers(); renderInbox(); renderBenchmark(); renderRanking(); renderHealth(); renderTogether(); }
+  function renderAll() { $("#demoBtn").hidden = cloudOn(); renderStatus(); renderMeterInfo(); renderTank(); renderTodayLog(); renderHistoryButtons(); renderDonut(); renderCalendar(); renderShowers(); renderInbox(); renderBenchmark(); renderRanking(); renderHealth(); renderTogether(); renderFacts(); }
   function setLanguage(next) {
     lang = I18N[next] ? next : "en"; store.set("lang", lang);
     applyStaticText(); renderQuickAdd(); renderRules(); renderUser(); renderHousehold(); renderShareToggle(); renderAll(); setShowerUi();
@@ -1521,6 +1569,7 @@
   addMsg("bot", t("chat.hello")).classList.add("hello");
   const firstVisit = !S.settings;
   if (!S.settings) S.settings = { household: 3, perPerson: C.defaultPerPersonLitres, community: C.fallbackCommunities[0].name };
+  loadServices(); loadHealthFacts();
   Promise.all([loadCommunities(), loadStatcan()]).then(() => {
     if (!firstVisit) return;
     openSettings();

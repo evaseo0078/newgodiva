@@ -1027,3 +1027,14 @@ Object.assign(window.DW_I18N.ko, {"rank.showSample": "샘플 주간 보기", "ra
  "rank.play": "▶ 일주일 시뮬레이션", "rank.pause": "⏸ 일시정지", "rank.dayOf": "샘플 · {d} ({n}/7일)",
  "rank.sampleBanner": "시연용 샘플 데이터예요 — 실제 가구 기록이 아니에요.",
  "rank.sampleEmpty": "샘플 데이터예요 — 이번 주 챌린지에 참여한 가구가 아직 없어요. 가구들이 계량기 기록을 공유하면 실제 결과로 바뀌어요."});
+
+Object.assign(window.DW_I18N.en, {"facts.whoCanada": "of Canadians have safely managed drinking water ({y})",
+ "facts.worldLack": "of people worldwide still don't ({y})", "facts.alberta": "average home water use per Albertan per day ({y})",
+ "facts.whoNeed": "per person per day covers basic needs (WHO)", "facts.offline": "Live WHO/UN figures couldn't load right now — try again later.",
+ "facts.govOffline": "Couldn't load datasets right now. Browse them at"});
+Object.assign(window.DW_I18N.ko, {"facts.title": "🌍 숫자로 보는 물과 건강", "facts.sub": "실시간 공공 데이터 — 캘거리의 안전한 수돗물을 지켜야 하는 이유.",
+ "facts.support": "📞 가까운 도움 찾기", "facts.gov": "📂 캐나다 정부 공개 데이터",
+ "facts.hsds": "이 목록은 Open Referral(HSDS) 표준 형식으로 저장돼서 211 같은 다른 서비스 안내와 공유할 수 있어요.",
+ "facts.whoCanada": "안전하게 관리되는 식수를 쓰는 캐나다인 비율 ({y})", "facts.worldLack": "아직 그렇지 못한 전 세계 인구 비율 ({y})",
+ "facts.alberta": "앨버타 주민 1인당 하루 가정 물 사용량 ({y})", "facts.whoNeed": "1인당 하루 기본 생활에 필요한 양 (WHO)",
+ "facts.offline": "WHO/UN 실시간 수치를 지금 불러오지 못했어요. 잠시 후 다시 시도해 주세요.", "facts.govOffline": "데이터 목록을 불러오지 못했어요. 여기서 볼 수 있어요:"});
