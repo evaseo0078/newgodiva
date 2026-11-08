@@ -92,7 +92,7 @@
         <rect width="1200" height="460" fill="url(#fade)"/>
       </svg>
       <div class="hero-inner">
-        <p class="kicker" data-i18n="hero.kicker">YYC · Stage 4 water restrictions</p>
+        <p class="kicker" id="restrictionKicker">YYC · Checking water restrictions</p>
         <h1 id="heroTitle" data-i18n="hero.title">Every drop counts, Calgary.</h1>
         <p class="hero-sub" data-i18n="hero.sub2">A water emergency is stressful. DropWise YYC helps every household <strong>stay healthy, stay calm and save water together</strong> with family and neighbours — so Calgary stays under 500 million litres a day while the Bearspaw South Feeder Main is repaired.</p>
         <ul class="pillars" aria-label="What DropWise helps with">
@@ -334,7 +334,8 @@
     <!-- Stage 4 at a glance -->
     <section class="section" aria-labelledby="rulesTitle">
       <div class="section-head">
-        <h2 id="rulesTitle" data-i18n="rules.title">Stage 4 at a glance</h2>
+        <h2 id="rulesTitle">Water restrictions</h2>
+        <p id="restrictionVerification" class="fineprint" role="status"></p>
         <p class="muted"><span data-i18n="rules.sub">What you can and can't do right now, in plain words.</span> <span id="fineChip" class="fine-chip"></span></p>
       </div>
       <div class="rules-grid">
@@ -342,6 +343,8 @@
         <article class="card rule-card yes"><h3 data-i18n="rules.yes">✅ Still allowed</h3><ul id="rulesYes"></ul></article>
         <article class="card rule-card home"><h3 data-i18n="rules.home">🏠 How to help indoors</h3><ul id="rulesHome"></ul></article>
       </div>
+      <div id="rulesDetails" class="restriction-details"></div>
+      <p id="fineExplanation" class="fineprint"></p>
       <p class="fineprint">Source: <a id="rulesSource" href="#" target="_blank" rel="noopener">City of Calgary — Stage 4 water restrictions</a>. Questions? Call 311.</p>
     </section>
 
@@ -371,6 +374,8 @@
           <span class="dot-key"><i class="dot over"></i> Over goal</span>
         </p>
         <div id="calendar" class="calendar" role="grid" aria-labelledby="calMonth"></div>
+        <p id="calendarCoverage" class="fineprint" role="status">Historical coverage is partial. Empty dates do not mean No Restrictions.</p>
+        <div id="calendarOutlook" class="fineprint"></div>
         <div id="calDetail" class="cal-detail" aria-live="polite"><p class="muted">Select a day to see what it means for you.</p></div>
       </article>
     </section>
@@ -478,7 +483,7 @@
         <h3 class="card-title" id="nbTitle" data-i18n="nb.title">🏘️ Check on a neighbour</h3>
         <p data-i18n="nb.body">Not everyone sees city alerts. Seniors, newcomers and neighbours who don't read English may not know the rules — or may be skipping water they need. A quick knock or text helps.</p>
         <ul class="nb-steps">
-          <li data-i18n="nb.s1">👋 Ask if they know about Stage 4 and if they need anything.</li>
+          <li>👋 Share the current verified restrictions and ask if they need anything.</li>
           <li data-i18n="nb.s2">🖨️ Leave a large-print card with the rules (in the language chosen at the top).</li>
           <li data-i18n="nb.s3">💧 Remind them: drinking, cooking and hygiene water are never the thing to cut.</li>
         </ul>
@@ -545,6 +550,6 @@
   <script src="data/config.js"></script>
   <script src="data/i18n.js"></script>
   <script src="cloud.js"></script>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

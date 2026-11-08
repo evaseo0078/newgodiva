@@ -5,7 +5,8 @@
   "type": "module",
   "description": "DropWise YYC — helping Calgary households save water during restrictions.",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "npx serve",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^3.0.0"

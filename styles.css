@@ -641,6 +641,20 @@ html, body { overflow-x: clip; }
 .stage-term, .status-pill { white-space: nowrap; }
 .stage-tip { white-space: normal; }
 .stage-tip-link { display: block; }
+.stage-tip { max-height: 75vh; overflow-y: auto; }
+.stage-guide-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.stage-guide-tabs button { font: inherit; padding: 5px 9px; border: 1px solid #b8c9db; border-radius: 8px; background: #fff; color: #1d2a38; cursor: pointer; }
+.stage-guide-tabs button[aria-pressed="true"] { background: #e3f0ff; border-color: var(--primary); font-weight: 700; }
+.stage-guide ul { padding-left: 18px; display: grid; gap: 8px; }
+.restriction-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 18px; }
+.restriction-details details { padding: 14px 18px; border: 1px solid #c5d5e5; border-radius: 12px; background: rgba(255,255,255,0.8); }
+.restriction-details summary { cursor: pointer; font-weight: 700; line-height: 1.5; }
+.restriction-details ul { padding-left: 20px; display: grid; gap: 12px; line-height: 1.65; }
+.rule-card ul { line-height: 1.65; gap: 12px; }
+.ev.estimated, .ev.scheduled { background: #7c5a22; border: 1px dashed #fff; }
+.ev.unknown, .ev.conflict, .ev.transition { background: #596879; }
+.cal-day.uncertain { border-bottom: 2px dashed #9aabba; }
+.cal-detail li { margin-bottom: 14px; line-height: 1.65; }
 @media (max-width: 600px) {
   .topbar { flex-wrap: wrap; row-gap: 8px; }
   .topbar .status-pill { margin-left: auto; }
