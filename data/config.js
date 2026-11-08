@@ -18,8 +18,6 @@ window.DW_CONFIG = {
   supabaseAnonKey: "sb_publishable_dGml3tSBb9N-RIUJXknrkA__MssoDd9",
   rankingMinHouseholds: 1, // raise to 3+ for real use so a single home's numbers can't be singled out
 
-  // Google Sign-In (optional): paste an OAuth 2.0 Web client ID from Google Cloud Console to turn on "Continue with Google".
-  googleClientId: "", 
   googleMapsApiKey: "",
 
   // Quick-add buttons. Litres from the City of Calgary Stage 4 page unless marked "estimate".

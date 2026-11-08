@@ -48,7 +48,6 @@
     async session() { if (!sb) return null; const { data } = await sb.auth.getSession(); return data.session; },
     signUp: (email, password, name) => q(sb.auth.signUp({ email, password, options: { data: { full_name: name }, emailRedirectTo: appUrl() } })),
     signIn: (email, password) => q(sb.auth.signInWithPassword({ email, password })),
-    signInGoogle: () => q(sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: appUrl() } })),
     async signOut() { if (sb) await sb.auth.signOut(); },
 
     /* ---- household ---- */

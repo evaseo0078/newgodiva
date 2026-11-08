@@ -38,9 +38,8 @@ No keys are needed for the first five. Results are cached for a day; if a source
 | Ask DropBot | Chatbot that knows the rules, the calendar, your household and live data | Google Gemini (`/api/chat`) |
 
 ## Log in
-`login.html` — email + password accounts or **Continue with Google**, plus *look around without logging in*. Each account's records are stored separately (key prefix per user).
+`login.html` — email + password accounts, plus *look around without logging in*. Each account's records are stored separately (key prefix per user).
 - **Demo scope:** accounts live in this browser only (passwords stored as a salted SHA-256 hash). For a real launch, move to a hosted auth service (Firebase Auth / Supabase) so records follow the user across devices.
-- **Google sign-in:** create an OAuth 2.0 *Web* client ID in Google Cloud Console, add your site URL (and `http://localhost:3000`) to *Authorized JavaScript origins*, and paste the ID into `googleClientId` in `data/config.js`. One Tap auto sign-in turns on automatically. In production, verify the Google token on a server.
 
 ## Water meter
 Type the number on the meter (decimals allowed), pick the unit (m³ or ft³), and the time you read it. Each reading is saved with its unit and time, converted to litres (1 m³ = 1,000 L, 1 ft³ = 28.3168 L), and compared with the previous reading.
@@ -66,9 +65,8 @@ To share one household across family members and devices:
 1. Create a free project at supabase.com.
 2. SQL Editor → paste all of `supabase/schema.sql` → Run. (Safe to run again.)
 3. Authentication → URL Configuration: set **Site URL** to your Vercel URL and add `https://YOUR-SITE/index.html` to Redirect URLs.
-4. (Optional) Authentication → Providers → Google: paste a Google OAuth client ID/secret.
-5. Project Settings → API: copy the **Project URL** and **anon public key** into `data/config.js` (`supabaseUrl`, `supabaseAnonKey`). The anon key is safe in the browser — Row Level Security protects the data. Never put the service_role key in the site.
-6. `rankingMinHouseholds`: raise to 3–5 for the real launch so a quadrant only appears once several homes report (privacy).
+4. Project Settings → API: copy the **Project URL** and **anon public key** into `data/config.js` (`supabaseUrl`, `supabaseAnonKey`). The anon key is safe in the browser — Row Level Security protects the data. Never put the service_role key in the site.
+5. `rankingMinHouseholds`: raise to 3–5 for the real launch so a quadrant only appears once several homes report (privacy).
 
 How it works
 - One account belongs to at most one household. The owner creates it (name, quadrant, people living there) and gets an 8-character invite code (e.g. `K7QM-2PXD`).

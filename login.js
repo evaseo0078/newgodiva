@@ -30,7 +30,6 @@
       el.innerHTML = (lang === "en" ? null : I18N[lang]?.[el.dataset.i18n]) ?? el.dataset.en;
     });
     $("#langSelect").value = lang;
-    if (!C.googleClientId && !CLOUD.enabled) $("#googleNote").textContent = t("login.googleOff");
     $("#modeNote").textContent = CLOUD.enabled ? t("login.noteOnline") : "";
     $("#localNote").hidden = CLOUD.enabled;
   }
@@ -109,38 +108,6 @@
     try { localStorage.setItem("dw_guest", "1"); } catch {}
     location.href = "index.html";
   });
-
-  /* ---------- Google Sign-In (Google Identity Services) ---------- */
-  function decodeJwt(token) {
-    const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    const json = decodeURIComponent(atob(part).split("").map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join(""));
-    return JSON.parse(json);
-  }
-  function onGoogle(resp) {
-    // NOTE: for production, send resp.credential to a server and verify it there before trusting it.
-    const p = decodeJwt(resp.credential);
-    finish({ id: "g_" + p.sub, name: p.name || p.email, email: p.email, picture: p.picture, provider: "google" });
-  }
-  if (CLOUD.enabled) { // Google through Supabase (works across devices)
-    $("#googleFallback").hidden = false;
-    $("#googleFallback").addEventListener("click", async () => {
-      try { await CLOUD.signInGoogle(); } catch { showError("login.network"); }
-    });
-  } else if (C.googleClientId) {
-    const s = document.createElement("script");
-    s.src = "https://accounts.google.com/gsi/client"; s.async = true; s.defer = true;
-    s.onload = () => {
-      google.accounts.id.initialize({ client_id: C.googleClientId, callback: onGoogle, auto_select: true, cancel_on_tap_outside: true });
-      google.accounts.id.renderButton($("#googleBtn"), { theme: "outline", size: "large", shape: "pill", text: "continue_with", width: 320, locale: lang });
-      google.accounts.id.prompt(); // One Tap / automatic sign-in for returning users
-    };
-    s.onerror = () => { $("#googleFallback").hidden = false; $("#googleFallback").disabled = true; };
-    document.head.appendChild(s);
-  } else {
-    $("#googleFallback").hidden = false;
-    $("#googleNote").hidden = false;
-    $("#googleFallback").addEventListener("click", () => { $("#googleNote").hidden = false; $("#googleNote").classList.add("flash"); });
-  }
 
   applyText();
   $("#email").focus();

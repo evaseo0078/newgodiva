@@ -355,7 +355,6 @@ Object.assign(window.DW_I18N.en, {
   "login.badEmail": "Please enter a valid email address.", "login.short": "Password must be at least 8 characters.",
   "login.exists": "An account with this email already exists on this device. Please sign in.",
   "login.wrong": "Email or password is not correct.", "login.noName": "Please enter your name.",
-  "login.googleOff": "Google sign-in isn't set up yet (add a Google client ID — see README)."
 });
 Object.assign(window.DW_I18N.ko, {
   "act.shower": "샤워 (3분)",
@@ -381,7 +380,6 @@ Object.assign(window.DW_I18N.ko, {
   "guide.note": "계량기마다 달라요 — 세제곱미터나 세제곱피트로 표시되고 자릿수도 달라요. 모든 기록은 리터로 환산돼요 (1 m³ = 1,000 L, 1 ft³ ≈ 28.3 L). 그림은 예시예요.",
   "user.guest": "게스트", "user.login": "로그인", "user.logout": "로그아웃", "user.confirmLogout": "이 기기에서 DropWise 로그아웃할까요?",
   "login.title": "DropWise에 로그인", "login.sub": "로그인하면 우리 집 물 사용 기록을 계정별로 따로 저장할 수 있어요.",
-  "login.google": "Google로 계속하기", "login.or": "또는 이메일로",
   "login.name": "이름", "login.email": "이메일", "login.password": "비밀번호 (8자 이상)",
   "login.signin": "로그인", "login.create": "계정 만들기",
   "login.toCreate": "처음이신가요? 계정 만들기", "login.toSignin": "이미 계정이 있나요? 로그인",
@@ -390,7 +388,6 @@ Object.assign(window.DW_I18N.ko, {
   "login.badEmail": "올바른 이메일을 입력해 주세요.", "login.short": "비밀번호는 8자 이상이어야 해요.",
   "login.exists": "이 기기에 같은 이메일 계정이 이미 있어요. 로그인해 주세요.",
   "login.wrong": "이메일 또는 비밀번호가 올바르지 않아요.", "login.noName": "이름을 입력해 주세요.",
-  "login.googleOff": "Google 로그인은 아직 설정되지 않았어요 (Google 클라이언트 ID 필요 — README 참고)."
 });
 Object.assign(window.DW_I18N.zh, {
   "act.shower": "淋浴（3 分钟）",
@@ -416,7 +413,6 @@ Object.assign(window.DW_I18N.zh, {
   "guide.note": "水表各不相同 — 有的用立方米，有的用立方英尺，位数也不同。所有读数都会换算成升（1 m³ = 1,000 升，1 ft³ ≈ 28.3 升）。图示仅为示例。",
   "user.guest": "访客", "user.login": "登录", "user.logout": "退出", "user.confirmLogout": "要在此设备上退出 DropWise 吗？",
   "login.title": "登录 DropWise", "login.sub": "登录后，可以按账户分别保存您家的用水记录。",
-  "login.google": "使用 Google 继续", "login.or": "或使用邮箱",
   "login.name": "姓名", "login.email": "邮箱", "login.password": "密码（至少 8 个字符）",
   "login.signin": "登录", "login.create": "创建账户",
   "login.toCreate": "第一次使用？创建账户", "login.toSignin": "已有账户？登录",
@@ -425,7 +421,6 @@ Object.assign(window.DW_I18N.zh, {
   "login.badEmail": "请输入有效的邮箱地址。", "login.short": "密码至少需要 8 个字符。",
   "login.exists": "此设备上已有该邮箱的账户，请直接登录。",
   "login.wrong": "邮箱或密码不正确。", "login.noName": "请输入姓名。",
-  "login.googleOff": "尚未设置 Google 登录（需要 Google 客户端 ID — 见 README）。"
 });
 Object.assign(window.DW_I18N.hi, {
   "act.shower": "शावर (3 मिनट)",
@@ -451,7 +446,6 @@ Object.assign(window.DW_I18N.hi, {
   "guide.note": "मीटर अलग-अलग होते हैं — कुछ घन मीटर, कुछ घन फ़ुट दिखाते हैं और अंकों की संख्या भी अलग होती है। हर रीडिंग लीटर में बदली जाती है (1 m³ = 1,000 L, 1 ft³ ≈ 28.3 L)। चित्र केवल उदाहरण है।",
   "user.guest": "अतिथि", "user.login": "लॉग इन", "user.logout": "लॉग आउट", "user.confirmLogout": "इस डिवाइस पर DropWise से लॉग आउट करें?",
   "login.title": "DropWise में लॉग इन करें", "login.sub": "लॉग इन करके अपने घर के पानी का रिकॉर्ड अपने खाते में अलग रख सकते हैं।",
-  "login.google": "Google से जारी रखें", "login.or": "या ईमेल से",
   "login.name": "नाम", "login.email": "ईमेल", "login.password": "पासवर्ड (कम से कम 8 अक्षर)",
   "login.signin": "लॉग इन", "login.create": "खाता बनाएँ",
   "login.toCreate": "नए हैं? खाता बनाएँ", "login.toSignin": "पहले से खाता है? लॉग इन करें",
@@ -460,7 +454,6 @@ Object.assign(window.DW_I18N.hi, {
   "login.badEmail": "कृपया सही ईमेल लिखें।", "login.short": "पासवर्ड कम से कम 8 अक्षर का हो।",
   "login.exists": "इस डिवाइस पर इस ईमेल का खाता पहले से है। कृपया लॉग इन करें।",
   "login.wrong": "ईमेल या पासवर्ड सही नहीं है।", "login.noName": "कृपया अपना नाम लिखें।",
-  "login.googleOff": "Google लॉग इन अभी सेट नहीं है (Google क्लाइंट ID चाहिए — README देखें)।"
 });
 Object.assign(window.DW_I18N.ar, {
   "act.shower": "استحمام (3 دقائق)",
@@ -486,7 +479,6 @@ Object.assign(window.DW_I18N.ar, {
   "guide.note": "العدادات مختلفة — بعضها بالمتر المكعب وبعضها بالقدم المكعب، ويختلف عدد الأرقام. تُحوَّل كل قراءة إلى لترات (1 م³ = 1,000 لتر، 1 قدم³ ≈ 28.3 لتر). الرسم مثال فقط.",
   "user.guest": "ضيف", "user.login": "تسجيل الدخول", "user.logout": "تسجيل الخروج", "user.confirmLogout": "هل تريد تسجيل الخروج من DropWise على هذا الجهاز؟",
   "login.title": "سجّل الدخول إلى DropWise", "login.sub": "بعد تسجيل الدخول تُحفظ سجلات استهلاك منزلك في حسابك بشكل منفصل.",
-  "login.google": "المتابعة باستخدام Google", "login.or": "أو بالبريد الإلكتروني",
   "login.name": "الاسم", "login.email": "البريد الإلكتروني", "login.password": "كلمة المرور (8 أحرف على الأقل)",
   "login.signin": "تسجيل الدخول", "login.create": "إنشاء حساب",
   "login.toCreate": "جديد هنا؟ أنشئ حسابًا", "login.toSignin": "لديك حساب؟ سجّل الدخول",
@@ -495,7 +487,6 @@ Object.assign(window.DW_I18N.ar, {
   "login.badEmail": "يرجى إدخال بريد إلكتروني صحيح.", "login.short": "يجب أن تكون كلمة المرور 8 أحرف على الأقل.",
   "login.exists": "يوجد حساب بهذا البريد على هذا الجهاز. يرجى تسجيل الدخول.",
   "login.wrong": "البريد الإلكتروني أو كلمة المرور غير صحيحة.", "login.noName": "يرجى إدخال اسمك.",
-  "login.googleOff": "تسجيل الدخول عبر Google غير مُفعّل بعد (يلزم معرّف عميل Google — راجع README)."
 });
 
 /* ---- Stage 4 explainer (status pill tooltip) ---- */
