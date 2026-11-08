@@ -710,6 +710,7 @@
     btn.hidden = false;
     btn.textContent = `Use the Alberta average (${b.litres} L) as my goal`;
     btn.onclick = () => { $("#setPerPerson").value = b.litres; };
+    renderFacts();
   }
 
   /* ---------- community: Discord ---------- */
@@ -831,10 +832,11 @@
     if (!lmap) {
       box.classList.add("leaflet-on");
       lmap = L.map(box, { center: [51.045, -114.07], zoom: 10, minZoom: 9, maxZoom: 16, scrollWheelZoom: false });
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-        subdomains: "abcd", maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(lmap);
+      lmap.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
       lmap.on("click", () => lmap.scrollWheelZoom.enable());
       lmap.on("mouseout", () => lmap.scrollWheelZoom.disable());
     }
@@ -871,11 +873,82 @@
     setTimeout(() => lmap.invalidateSize(), 0);
   }
 
+  /* Google Maps version of the same map (used when googleMapsApiKey is set). */
+  let gmap = null, gOverlays = [], gInfo = null, gLoading = null;
+  function loadGoogleMaps() {
+    if (window.google?.maps?.importLibrary) return Promise.resolve();
+    if (gLoading) return gLoading;
+    gLoading = new Promise((resolve, reject) => {
+      window.__dwGmapsReady = resolve;
+      const sc = document.createElement("script");
+      sc.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(C.googleMapsApiKey)}&v=weekly&loading=async&callback=__dwGmapsReady`;
+      sc.async = true; sc.onerror = () => reject(new Error("Google Maps failed to load"));
+      document.head.appendChild(sc);
+    });
+    return gLoading;
+  }
+  async function renderGoogle(box, col, byQ, lbl) {
+    await loadGoogleMaps();
+    const { Map, Polygon, InfoWindow, OverlayView } = await google.maps.importLibrary("maps");
+    if (!gmap) {
+      box.classList.add("gmap-on"); box.innerHTML = "";
+      gmap = new Map(box, { center: { lat: 51.045, lng: -114.07 }, zoom: 10, minZoom: 9, maxZoom: 16,
+        gestureHandling: "cooperative", streetViewControl: false, mapTypeControl: false, fullscreenControl: true });
+      gInfo = new InfoWindow();
+    }
+    gOverlays.forEach((o) => o.setMap(null)); gOverlays = [];
+    const myComm = (S.settings?.community || "").toUpperCase(), myQ = quadOf(S.settings?.community);
+    const tipFor = (name, q) => `<strong>${esc(name)}</strong><br>${Q.names[q]} (${q})${byQ[q]?.lpd != null ? `<br>${byQ[q].lpd} L per person/day` : ""}`;
+    const cent = { NW: [0, 0, 0], NE: [0, 0, 0], SW: [0, 0, 0], SE: [0, 0, 0] };
+    const bounds = new google.maps.LatLngBounds();
+    const add = (paths, q, name, mine) => {
+      const poly = new Polygon({ paths, map: gmap, fillColor: col[q] || "#90a4ae", fillOpacity: OVERLAY_OPACITY,
+        strokeColor: mine ? "#111" : (col[q] || "#90a4ae"), strokeOpacity: mine ? 1 : 0.7, strokeWeight: mine ? 3 : 0.8, zIndex: mine ? 2 : 1 });
+      poly.addListener("click", (e) => { gInfo.setContent(tipFor(name, q)); gInfo.setPosition(e.latLng); gInfo.open({ map: gmap }); });
+      gOverlays.push(poly);
+    };
+    if (S.map) {
+      for (const f of S.map.features) {
+        const paths = f.rings.map((r) => r.map(([x, y]) => ({ lat: y, lng: x })));
+        const mine = f.name.toUpperCase() === myComm;
+        add(paths, f.q, titleCase(f.name) + (mine ? " (you)" : ""), mine);
+        f.rings[0].forEach(([x, y]) => { cent[f.q][0] += y; cent[f.q][1] += x; cent[f.q][2]++; bounds.extend({ lat: y, lng: x }); });
+      }
+      $("#mapNote").textContent = `${S.map.features.length} communities · tap an area for details`;
+    } else {
+      const polys = quadrantPolygons();
+      for (const q of Object.keys(polys)) {
+        add(polys[q].map(([y, x]) => ({ lat: y, lng: x })), q, Q.names[q], q === myQ);
+        polys[q].forEach(([y, x]) => { cent[q][0] += y; cent[q][1] += x; cent[q][2]++; bounds.extend({ lat: y, lng: x }); });
+      }
+      $("#mapNote").textContent = "Approximate quadrant areas";
+    }
+    // Quadrant labels (HTML overlays, no extra library needed)
+    class Label extends OverlayView {
+      constructor(pos, html) { super(); this.pos = pos; this.div = document.createElement("div"); this.div.style.position = "absolute"; this.div.innerHTML = html; }
+      onAdd() { this.getPanes().floatPane.appendChild(this.div); }
+      draw() { const p = this.getProjection().fromLatLngToDivPixel(this.pos); this.div.style.left = p.x + "px"; this.div.style.top = p.y + "px"; this.div.style.transform = "translate(-50%,-50%)"; }
+      onRemove() { this.div.remove(); }
+    }
+    for (const q of Object.keys(cent)) {
+      const [sy, sx, n] = cent[q]; if (!n) continue;
+      const l = new Label(new google.maps.LatLng(sy / n, sx / n), `<span class="gm-label" style="--c:${col[q] || "#607d8b"}">${esc(lbl(q))}</span>`);
+      l.setMap(gmap); gOverlays.push(l);
+    }
+    if (!bounds.isEmpty() && !gmap._dwFitted) { gmap.fitBounds(bounds, 10); gmap._dwFitted = true; }
+  }
+
+  // Bad or restricted key: Google calls this — switch to the free map.
+  window.gm_authFailure = () => { console.warn("Google Maps key rejected — using OpenStreetMap"); S.gmapsFailed = true; gmap = null; const b = $("#cityMap"); if (b) { b.classList.remove("gmap-on"); b.innerHTML = ""; } renderMap(); };
   function renderMap() {
     const box = $("#cityMap"); if (!box) return;
+    const col = quadColors(), byQ = Object.fromEntries((S.ranking?.quadrants || []).map((r) => [r.q, r]));
+    const lbl = (q) => `${q}${byQ[q]?.lpd != null ? " · " + byQ[q].lpd + " L" : ""}`;
+    if (C.googleMapsApiKey && !S.gmapsFailed) {
+      renderGoogle(box, col, byQ, lbl).catch((e) => { console.warn("Google Maps failed, using OpenStreetMap", e); window.gm_authFailure(); });
+      return;
+    }
     if (window.L && typeof L.map === "function") {
-      const col = quadColors(), byQ = Object.fromEntries((S.ranking?.quadrants || []).map((r) => [r.q, r]));
-      const lbl = (q) => `${q}${byQ[q]?.lpd != null ? " · " + byQ[q].lpd + " L" : ""}`;
       try { return renderLeaflet(box, col, byQ, lbl); } catch (e) { console.warn("Leaflet map failed, using SVG map", e); }
     }
     renderSvgMap(box);
@@ -961,36 +1034,73 @@
     } catch (e) { msg.textContent = "Couldn't share: " + e.message; }
   }
 
+  // Sample week for demos: shown when nobody has reported yet, or with ?demo=1 in the address.
+  const SAMPLE_WEEK = { // litres per person per day, Mon → Sun; ranks swap during the week
+    NW: [205, 198, 186, 178, 170, 166, 162], NE: [180, 184, 190, 192, 195, 189, 186],
+    SW: [190, 182, 176, 174, 172, 175, 178], SE: [170, 176, 183, 196, 205, 210, 208] };
+  const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  let liveRanking = null, playTimer = null;
+  const forceDemo = new URLSearchParams(location.search).has("demo");
+  function sampleFrame(d) {
+    const quadrants = Object.keys(SAMPLE_WEEK).map((q) => {
+      const lpd = SAMPLE_WEEK[q][d], first = SAMPLE_WEEK[q][0];
+      return { q, lpd, reports: 12 + d * 3 + q.charCodeAt(1) % 5, change: d ? Math.round(((lpd - first) / first) * 100) : null };
+    });
+    return { quadrants, totals: { reports: quadrants.reduce((a, r) => a + r.reports, 0), quadrants: 4 }, demo: true, sample: true, day: d };
+  }
+  function showSample(d = 6) { S.ranking = sampleFrame(d); renderRanking(); }
+  function stopPlay() { clearInterval(playTimer); playTimer = null; $("#rankPlay").textContent = t("rank.play"); }
+  $("#rankSample").addEventListener("click", () => {
+    stopPlay();
+    if (S.ranking?.sample && liveRanking) { S.ranking = liveRanking; renderRanking(); } else showSample(6);
+  });
+  $("#rankPlay").addEventListener("click", () => {
+    if (playTimer) return stopPlay();
+    let d = 0; showSample(d);
+    $("#rankPlay").textContent = t("rank.pause");
+    playTimer = setInterval(() => { d++; if (d > 6) return stopPlay(); showSample(d); }, 1300);
+  });
+  const hasLive = (R) => (R?.quadrants || []).some((r) => r.lpd != null);
+
   async function loadRanking() {
+    stopPlay();
+    await loadLiveRanking();
+    liveRanking = S.ranking;
+    if (forceDemo || !hasLive(liveRanking)) showSample(6); else renderRanking();
+  }
+  async function loadLiveRanking() {
     if (CLOUD.enabled) {
       try {
         const rows = await CLOUD.ranking();
         S.ranking = { quadrants: rows, totals: { reports: rows.reduce((a, r) => a + r.reports, 0), quadrants: rows.length }, demo: false, source: "db" };
-        return renderRanking();
+        return;
       } catch { /* fall back below */ }
     }
     try {
       const r = await fetch("/api/discord?view=ranking"); if (!r.ok) throw new Error(r.status);
       S.ranking = { ...(await r.json()), demo: false, source: "discord" };
     } catch {
-      S.ranking = { ...C.demoRanking, demo: true };
+      S.ranking = { quadrants: [], totals: { reports: 0 }, demo: false, source: "none" };
     }
-    renderRanking();
   }
   function renderRanking() {
     const R = S.ranking; if (!R) return;
     const banner = $("#rankBanner");
-    banner.hidden = !R.demo;
-    banner.textContent = "Demo data — connect the Discord bot (see README) to show the live quadrant ranking from #water-challenge.";
-    const ch = C.discord.channels.find((c) => c.name === "water-challenge");
+    banner.hidden = !R.sample;
+    banner.textContent = hasLive(liveRanking) ? t("rank.sampleBanner") : t("rank.sampleEmpty");
+    $("#rankPlay").hidden = !R.sample;
+    if (!playTimer) $("#rankPlay").textContent = t("rank.play");
+    $("#rankSample").textContent = R.sample ? (hasLive(liveRanking) ? t("rank.showLive") : t("rank.showLiveEmpty")) : t("rank.showSample");
+    $("#rankDay").textContent = R.sample ? t("rank.dayOf", { d: DAY_NAMES[R.day], n: R.day + 1 }) : "";
+    const ch = C.discord.channels.find((c) => ["weekly-challenge", "water-challenge"].includes(c.name));
     const href = C.discord.guildId && ch?.id ? `https://discord.com/channels/${C.discord.guildId}/${ch.id}` : C.discord.inviteUrl;
     const join = $("#rankJoin"); join.hidden = !href; if (href) join.href = href;
 
     const rows = quadRows(), col = quadColors(), myQ = quadOf(S.settings?.community);
     const myRank = rows.findIndex((r) => r.q === myQ);
-    const t = R.totals || {};
+    const tot = R.totals || {};
     $("#rankSummary").innerHTML = `
-      <div><b>${t.reports ?? 0}</b><span>${R.source === "db" ? "households ranked this week" : "household reports this week"}</span></div>
+      <div><b>${tot.reports ?? 0}</b><span>${R.source === "db" ? "households ranked this week" : "household reports this week"}</span></div>
       <div><b>${rows[0] ? rows[0].q : "—"}</b><span>saving the most water</span></div>
       <div><b>${rows.length ? Math.round(rows.reduce((s, r) => s + r.lpd * r.reports, 0) / Math.max(1, rows.reduce((s, r) => s + r.reports, 0))) + " L" : "—"}</b><span>city average per person/day</span></div>
       <div><b>${!R.demo && myRank >= 0 ? "#" + (myRank + 1) : myQ || "—"}</b><span>${!R.demo && myRank >= 0 ? "your quadrant's rank" : "your quadrant"}</span></div>`;
@@ -998,7 +1108,7 @@
     $("#quadRank").innerHTML = rows.map((r, i) => {
       const me = !R.demo && r.q === myQ;
       const ch = r.change == null ? `<span class="muted">new</span>`
-        : `<span class="${r.change <= 0 ? "good" : "bad"}">${r.change <= 0 ? "▼" : "▲"} ${Math.abs(r.change)}% vs last week</span>`;
+        : `<span class="${r.change <= 0 ? "good" : "bad"}">${r.change <= 0 ? "▼" : "▲"} ${Math.abs(r.change)}% ${R.sample ? "vs Monday" : "vs last week"}</span>`;
       return `<li class="${me ? "me" : ""}" style="--c:${col[r.q]}">
         <span class="rank-no">${["🥇", "🥈", "🥉"][i] || i + 1}</span>
         <div class="q-body">
@@ -1215,6 +1325,53 @@
     } catch { /* cancelled */ }
   });
 
+
+  /* ---------- water & health facts (WHO GHO, UN SDG, StatCan, Open Data Canada, Open Referral) ---------- */
+  let SERVICES = null, svcFilter = "all";
+  async function loadHealthFacts() {
+    let d = null;
+    try { const r = await fetch("/api/health"); if (r.ok) d = await r.json(); } catch { /* offline */ }
+    S.facts = d; renderFacts();
+  }
+  function renderFacts() {
+    const box = $("#factStats"); if (!box) return;
+    const d = S.facts || {}, tiles = [];
+    if (d.whoCanada) tiles.push([`${d.whoCanada.value}%`, t("facts.whoCanada", { y: d.whoCanada.year }), "WHO GHO"]);
+    else if (d.sdgCanada) tiles.push([`${d.sdgCanada.value}%`, t("facts.whoCanada", { y: d.sdgCanada.year }), "UN SDG 6.1.1"]);
+    if (d.sdgWorld) {
+      const lack = Math.round(100 - d.sdgWorld.value);
+      tiles.push([`${lack}%`, t("facts.worldLack", { y: d.sdgWorld.year }), "UN SDG 6.1.1"]);
+    }
+    const ab = S.benchmark?.alberta;
+    if (ab) tiles.push([`${ab.litres} L`, t("facts.alberta", { y: ab.year }), "Statistics Canada"]);
+    tiles.push([`${HEALTH_MIN}–100 L`, t("facts.whoNeed"), "WHO"]);
+    box.innerHTML = tiles.map(([v, l, src]) => `<div class="fact"><b>${esc(v)}</b><span>${esc(l)}</span><small>${esc(src)}</small></div>`).join("") +
+      (!d.whoCanada && !d.sdgWorld ? `<p class="fineprint">${esc(t("facts.offline"))}</p>` : "");
+    const gov = $("#govDatasets");
+    gov.innerHTML = d.datasets?.length
+      ? d.datasets.map((x) => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a><small class="muted">${esc(x.org)}${x.updated ? " · " + esc(x.updated) : ""}</small></li>`).join("")
+      : `<li class="muted">${esc(t("facts.govOffline"))} <a href="https://open.canada.ca/data/en/dataset?q=drinking+water" target="_blank" rel="noopener">open.canada.ca</a></li>`;
+  }
+  async function loadServices() {
+    try { const r = await fetch("data/services.json"); SERVICES = r.ok ? await r.json() : null; } catch { SERVICES = null; }
+    renderServices();
+  }
+  function renderServices() {
+    const ul = $("#svcList"); if (!ul || !SERVICES) return;
+    const orgs = Object.fromEntries(SERVICES.organizations.map((o) => [o.id, o]));
+    const list = SERVICES.services.filter((x) => svcFilter === "all" || x.category === svcFilter);
+    ul.innerHTML = list.map((x) => {
+      const o = orgs[x.organization_id] || {}, ph = x.phones?.[0];
+      return `<li><div><strong>${esc(o.name || "")}</strong> — ${esc(x.name)}<br><small class="muted">${esc(x.description)}</small></div>
+        ${ph ? `<a class="svc-call" href="tel:${esc(ph.number.replace(/[^0-9]/g, ""))}" title="${esc(ph.description)}">📞 ${esc(ph.number)}</a>` : ""}</li>`;
+    }).join("");
+  }
+  document.querySelectorAll("[data-svc]").forEach((b) => b.addEventListener("click", () => {
+    svcFilter = b.dataset.svc;
+    document.querySelectorAll("[data-svc]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    renderServices();
+  }));
+
   /* ---------- our household (online) ---------- */
   const fmtCode = (c) => (c ? `${c.slice(0, 4)}-${c.slice(4)}` : "");
   const online = () => CLOUD.enabled && SESSION?.provider === "supabase";
@@ -1400,7 +1557,7 @@
   });
 
   /* ---------- boot ---------- */
-  function renderAll() { $("#demoBtn").hidden = cloudOn(); renderStatus(); renderMeterInfo(); renderTank(); renderTodayLog(); renderHistoryButtons(); renderDonut(); renderCalendar(); renderShowers(); renderInbox(); renderBenchmark(); renderRanking(); renderHealth(); renderTogether(); }
+  function renderAll() { $("#demoBtn").hidden = cloudOn(); renderStatus(); renderMeterInfo(); renderTank(); renderTodayLog(); renderHistoryButtons(); renderDonut(); renderCalendar(); renderShowers(); renderInbox(); renderBenchmark(); renderRanking(); renderHealth(); renderTogether(); renderFacts(); }
   function setLanguage(next) {
     lang = I18N[next] ? next : "en"; store.set("lang", lang);
     applyStaticText(); renderQuickAdd(); renderRules(); renderUser(); renderHousehold(); renderShareToggle(); renderAll(); setShowerUi();
@@ -1412,6 +1569,7 @@
   addMsg("bot", t("chat.hello")).classList.add("hello");
   const firstVisit = !S.settings;
   if (!S.settings) S.settings = { household: 3, perPerson: C.defaultPerPersonLitres, community: C.fallbackCommunities[0].name };
+  loadServices(); loadHealthFacts();
   Promise.all([loadCommunities(), loadStatcan()]).then(() => {
     if (!firstVisit) return;
     openSettings();
