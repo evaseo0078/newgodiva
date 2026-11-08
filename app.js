@@ -4,6 +4,7 @@ import "./data/restriction-calendar.js";
 import "./data/calendar-presentation.js";
 import "./data/household-calendar.js";
 import MU from "./data/meter-usage.js";
+import { renderMarkdown } from "./data/markdown.js";
 
 (async () => {
   "use strict";
@@ -1258,29 +1259,42 @@ import MU from "./data/meter-usage.js";
   function addMsg(role, text, note) {
     const div = document.createElement("div");
     div.className = "msg " + role;
-    div.textContent = text;
+    // Bot replies: safe Markdown (everything is escaped first; only a fixed set of tags is produced). User text stays plain.
+    if (role === "bot") { const body = document.createElement("div"); body.className = "md"; body.innerHTML = renderMarkdown(text); div.appendChild(body); }
+    else div.textContent = text;
     if (note) { const s = document.createElement("span"); s.className = "src"; s.textContent = note; div.appendChild(s); }
     $("#chatLog").appendChild(div); $("#chatLog").scrollTop = 1e6;
     return div;
+  }
+  // ESTIMATED (activity log) vs MEASURED (meter intervals) vs what can't be determined yet. Never mixed.
+  function usageContext() {
+    const est = categoryTotals(); delete est.unitemized; // display-only "not itemized" gap is derived from the meter
+    const meter = MU.meterContext(S.readings, { residents: residents(), today: todayKey(), dayOf: (ts) => dateKey(new Date(ts)),
+      fmtTime: (ts) => new Date(ts).toLocaleString("en-CA", { timeZone: TZ, year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) });
+    return {
+      estimatedFromActivityLog: { todayLitres: Math.round(estimatedTotal()), byCategoryLitres: Object.fromEntries(Object.entries(est).map(([k, v]) => [k, Math.round(v)])),
+        note: "Estimates from tapped buttons and the shower timer (City of Calgary per-activity figures). Not measured." },
+      meter,
+      todayTotalForGoal: meter.todayStatus === "measured"
+        ? { litres: meter.todayMeasuredLitres, kind: "measured" }
+        : { litres: Math.round(estimatedTotal()), kind: "estimate", note: "No measured total for today, so the goal bar uses the activity estimate." }
+    };
   }
   function context() {
     return {
       today: todayKey(),
       siteLanguage: lang,
-      household: S.hh ? { name: S.hh.name, quadrant: S.hh.quadrant, residents: S.hh.residents, appMembers: S.hh.members.length } : null,
-      measuredTodayLitres: meterUse() != null ? Math.round(meterUse()) : null,
-      meterAverageLast7Days: (() => { const a = meterAverage(); return a ? { litresPerDay: Math.round(a.perDay), litresPerPersonPerDay: Math.round(a.perPerson), basedOnDays: +a.days.toFixed(1) } : null; })(),
-      estimatedTodayLitres: Math.round(estimatedTotal()),
-      household: S.settings?.household, community: S.settings?.community,
-      perPersonGoalLitres: S.settings?.perPerson, dailyGoalLitres: budget(), usedTodayLitres: Math.round(dayTotal()),
-      usedByCategory: categoryTotals(), // shower (timer) vs rest of home (meter)
+      onlineHousehold: S.hh ? { name: S.hh.name, quadrant: S.hh.quadrant, residents: S.hh.residents, appMembers: S.hh.members.length } : null,
+      residents: residents(), community: S.settings?.community,
+      perPersonGoalLitres: perPersonGoal(), dailyGoalLitres: budget(),
+      // Usage, kept in three clearly separate kinds — see the system prompt in api/chat.js.
+      usage: usageContext(),
       restrictionStatus: { stage: restrictionStatus?.stage ?? null, verifiedAt: restrictionStatus?.verifiedAt ?? null, stale: restrictionStatus?.stale ?? true },
       activeEvents: eventsOn(todayKey()).map((e) => e.title),
       upcomingEvents: allEvents().filter(event => event.kind === "observation" ? event.start >= todayKey() : !event.end || event.end >= todayKey()).map(event => `${event.title}: ${event.start} to ${event.end || "no confirmed end date"}${event.approx ? " (approx.)" : ""}`),
       albertaAverageResidentialLitresPerPerson: S.benchmark?.alberta || null,
       quadrant: quadOf(S.settings?.community),
       quadrantRanking: S.ranking ? { demo: S.ranking.demo, quadrants: S.ranking.quadrants } : null,
-      meterReadingsToday: S.readings.filter((r) => r.date === todayKey()).length,
       activityLitres: C.activities.map((a) => `${a.label}: ${a.perMinute ? a.perMinute + " L/min" : a.litres + " L"}`)
     };
   }

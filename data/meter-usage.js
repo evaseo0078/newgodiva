@@ -78,6 +78,56 @@ export function checkReading(readings, candidate) {
   return issues;
 }
 
-const meterUsage = { L_PER, MIN_RATE_HOURS, DUPLICATE_WINDOW_MS, SOURCES, toLitres, sortReadings, intervals, average, dayUse, checkReading };
+/** Meter facts for the chatbot, labelled so a cumulative dial value can never be mistaken for consumption.
+ *  Only real intervals between two saved readings produce litres; nothing is extrapolated or invented.
+ *  opts: { residents, today: "YYYY-MM-DD", dayOf(ts) → "YYYY-MM-DD", fmtTime(ts) → string, now, maxIntervals } */
+export function meterContext(readings, { residents = 1, today, dayOf, fmtTime = (ts) => new Date(ts).toISOString(), now = Date.now(), maxIntervals = 5 } = {}) {
+  const rs = sortReadings(readings).filter((r) => !r.demo);
+  const round = (n) => (n == null ? null : Math.round(n));
+  const label = (r) => `${Number(r.value)} ${r.unit === "ft3" ? "ft³" : "m³"}`;
+  if (!rs.length) return { readingsSaved: 0, todayStatus: "no_meter_readings", todayMeasuredLitres: null,
+    todayExplanation: "No meter readings are saved yet, so actual consumption is unknown." };
+  const last = rs[rs.length - 1];
+  const ivs = intervals(rs, { residents }).slice(-maxIntervals).reverse().map((iv) => ({
+    from: fmtTime(iv.from.ts), to: fmtTime(iv.to.ts), hours: +iv.hours.toFixed(1),
+    status: iv.status, // ok | short (<12 h, no daily rate) | reset (meter replaced, not usage) | negative (invalid)
+    litresUsed: round(iv.litres),
+    litresPerDay: round(iv.perDay), litresPerPersonPerDay: round(iv.perPerson)
+  }));
+  const measured = dayUse(rs, today, dayOf);
+  const onToday = rs.filter((r) => dayOf(r.ts) === today), before = rs.filter((r) => dayOf(r.ts) < today);
+  let todayStatus, todayExplanation;
+  if (measured != null) {
+    todayStatus = "measured";
+    todayExplanation = "Measured: last reading today minus the last reading yesterday.";
+  } else if (!onToday.length) {
+    todayStatus = "no_reading_today";
+    todayExplanation = "No meter reading saved today yet, so today's actual consumption can't be determined. Earlier intervals are below.";
+  } else if (onToday.some((r) => r.reset)) {
+    todayStatus = "meter_reset_today";
+    todayExplanation = "The meter was marked as replaced/reset today; usage restarts from that reading.";
+  } else if (!before.length) {
+    todayStatus = onToday.length > 1 ? "only_readings_from_today" : "first_reading";
+    todayExplanation = onToday.length > 1
+      ? "All readings are from today, so only the partial interval between them is known — not a full day."
+      : "This is the first reading. Consumption needs a second reading later.";
+  } else {
+    const prev = before[before.length - 1], days = (last.ts - prev.ts) / 864e5;
+    todayStatus = "gap_since_previous_reading";
+    todayExplanation = `The latest reading is from today (${fmtTime(last.ts)}). The reading before it is from ${fmtTime(prev.ts)}, about ${Math.round(days)} days earlier — not from yesterday. So the latest interval covers ${Math.round(days)} days; its litres per day is an average over that period, not today's use.`;
+  }
+  const avg = average(rs, { residents, sinceTs: now - 7 * 864e5 });
+  return {
+    readingsSaved: rs.length,
+    latestReading: { cumulativeMeterTotal: label(last), readAt: fmtTime(last.ts),
+      note: "Cumulative total shown on the meter since installation — NOT consumption." },
+    todayStatus, todayExplanation,
+    todayMeasuredLitres: round(measured),
+    recentIntervals: ivs,
+    average7Days: avg ? { litresPerDay: round(avg.perDay), litresPerPersonPerDay: round(avg.perPerson), basedOnHours: Math.round(avg.hours) } : null
+  };
+}
+
+const meterUsage = { L_PER, MIN_RATE_HOURS, DUPLICATE_WINDOW_MS, SOURCES, toLitres, sortReadings, intervals, average, dayUse, checkReading, meterContext };
 if (typeof window !== "undefined") window.DW_METER_USAGE = meterUsage;
 export default meterUsage;

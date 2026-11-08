@@ -70,6 +70,16 @@ export function toGeminiContents(messages) {
   return out;
 }
 
+// Compact JSON with a size cap; if too big, drop the least important lists first so the usage data always survives.
+export function contextJSON(ctx, max = 9000) {
+  let json = JSON.stringify(ctx);
+  for (const key of ["activityLitres", "upcomingEvents", "quadrantRanking", "activeEvents"]) {
+    if (json.length <= max) break;
+    const { [key]: _drop, ...rest } = ctx; ctx = rest; json = JSON.stringify(ctx);
+  }
+  return json.length <= max ? json : json.slice(0, max) + " …(truncated)";
+}
+
 export function buildSystemPrompt({ config: C, restrictions, context }) {
   const ctx = context && typeof context === "object" ? context : {};
   const siteLanguage = LANGUAGES[ctx.siteLanguage] || "English";
@@ -92,14 +102,20 @@ ${JSON.stringify(restrictions)}
 CALENDAR (official dates; "approx." means the City gave an approximate duration):
 ${(C.events || []).map((e) => `- ${e.title}: ${e.start} to ${e.end || "no confirmed end date"}${e.approx ? " (approx.)" : ""}. ${e.detail || ""}`).join("\n")}
 
-THIS USER'S LIVE CONTEXT (from the website):
-${JSON.stringify(ctx, null, 1).slice(0, 4000)}
-How to read it:
-- "measuredTodayLitres" comes from the user's water-meter readings (measured). null means there is no measured total for today.
-- "meterAverageLast7Days" is a time-weighted average from meter readings. null means not enough readings.
-- "estimatedTodayLitres" and "usedByCategory" are ESTIMATES from tapped buttons and the shower timer — always call them estimates.
+THIS USER'S LIVE CONTEXT (from the website, JSON):
+${contextJSON(ctx)}
+How to read "usage" — three different kinds of numbers. Never mix or add them, and always say which kind you are quoting:
+1. usage.estimatedFromActivityLog — ESTIMATES from tapped buttons and the shower timer. Call them "estimated".
+2. usage.meter — MEASURED data from the user's saved water-meter readings:
+   - latestReading.cumulativeMeterTotal is the running total on the meter dial since it was installed. It is NOT consumption — never present it as today's (or any period's) usage.
+   - recentIntervals are real measurements between two saved readings: litresUsed over "hours", from → to. litresPerDay is an average over that interval. status "short" = under 12 h (no daily rate), "reset" = meter replaced (not usage), "negative" = invalid.
+   - todayMeasuredLitres is set only when todayStatus is "measured" (a reading today and one yesterday).
+   - average7Days is a time-weighted average over valid intervals in the last 7 days.
+   - readingsSaved > 0 means the user HAS meter readings — never say they have none.
+3. Can't be determined yet — when todayStatus is not "measured", explain todayExplanation in plain words: today's actual use is not known yet. You may quote the latest interval's litresPerDay as an average, and say a reading at about the same time tomorrow will give an exact daily number.
+- usage.todayTotalForGoal shows what the site's goal bar uses ("measured" or "estimate").
 - "quadrantRanking" with "demo": true is sample data, not real reports.
-- Never state a usage number, meter reading or ranking that is not in this context. If it's missing, say so and explain how to record it.
+- Never state a usage number, meter reading or ranking that is not in this context, and never compute consumption from a single reading.
 
 THE DROPWISE WEBSITE (for "how do I…" questions):
 - Today's usage: quick-add buttons and a shower timer give estimates; "Water meter reading" is the measured total — type the number on the meter, pick m³ or ft³ and the time, then Save reading. DropWise turns the difference between readings into litres per day and per person. A lower reading can be saved as "meter replaced or reset".

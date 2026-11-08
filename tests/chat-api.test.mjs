@@ -45,8 +45,8 @@ test("history is trimmed, mapped to Gemini roles and merged so it starts and alt
 });
 
 test("system prompt grounds answers and supports the five site languages", () => {
-  const p = buildSystemPrompt({ config: { ruleFacts: ["Fact A"], events: [] }, restrictions: { stage: null }, context: { siteLanguage: "ar", measuredTodayLitres: null } });
-  for (const s of ["Fact A", '"stage":null', "Korean", "Simplified Chinese", "Hindi", "Arabic", "reply in Arabic", "Never invent", "measuredTodayLitres"]) assert.ok(p.includes(s), s);
+  const p = buildSystemPrompt({ config: { ruleFacts: ["Fact A"], events: [] }, restrictions: { stage: null }, context: { siteLanguage: "ar", usage: { meter: { readingsSaved: 2, todayStatus: "gap_since_previous_reading" } } } });
+  for (const s of ["Fact A", '"stage":null', "Korean", "Simplified Chinese", "Hindi", "Arabic", "reply in Arabic", "Never invent", "cumulativeMeterTotal", "NOT consumption", "readingsSaved > 0", "gap_since_previous_reading"]) assert.ok(p.includes(s), s);
   assert.ok(buildSystemPrompt({ config: {}, restrictions: {}, context: { siteLanguage: "xx" } }).includes("reply in English"));
 });
 
