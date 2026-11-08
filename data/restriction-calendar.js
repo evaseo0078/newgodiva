@@ -1,4 +1,4 @@
-(function (root) {
+const calendar = (() => {
   const timezone = "America/Edmonton";
   const reviewedAt = "2026-11-08T05:12:50.000Z";
   const records = [
@@ -119,6 +119,9 @@
     }).filter(day => validDate(day.key));
   }
   const calendar = { records, validDate, validRecord, mergeRecords, observation, resolveDay, shiftMonth, monthGrid, dayKey, timezone };
-  if (typeof module !== "undefined") module.exports = calendar;
-  else root.DW_CALENDAR = calendar;
-})(globalThis);
+  return calendar;
+})();
+
+if (typeof window !== "undefined") window.DW_CALENDAR = calendar;
+
+export default calendar;

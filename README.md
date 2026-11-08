@@ -46,7 +46,7 @@ No keys are needed for the first five. Results are cached for a day; if a source
 Type the number on the meter (decimals allowed), pick the unit (m³ or ft³), and the time you read it — or scan a photo and let AI fill the number and unit. Each reading is saved with its unit and time, converted to litres (1 m³ = 1,000 L, 1 ft³ = 28.3168 L), and compared with the previous reading.
 
 ## Run it
-**Quick look (no server):** open `index.html` in a browser. Community names load live; Discord, news, StatCan and AI fall back to offline/demo mode.
+**Quick look (static server):** run `npm run dev` and open the local URL it prints. The app uses browser ES modules, so serve it over HTTP rather than opening `index.html` with `file://`. Community names load live; Discord, news, StatCan and AI fall back to offline/demo mode.
 
 **Full version (recommended for the demo):**
 1. Install the Vercel CLI: `npm i -g vercel`

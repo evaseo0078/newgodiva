@@ -1,4 +1,4 @@
-(function (root) {
+const model = (() => {
   const source = "https://www.calgary.ca/water/drought/outdoor-water-restrictions.html";
   const scheduleSource = "https://www.calgary.ca/water/drought/lawn-watering-schedule.html";
   const fineSource = "https://www.calgary.ca/content/dam/www/uep/water/documents/water-documents/40M2006-water-utility-office-consolidation.pdf";
@@ -58,6 +58,9 @@
     }
   }
   const model = { stages, source, scheduleSource, reviewedOn: "2026-11-08" };
-  if (typeof module !== "undefined") module.exports = model;
-  else root.DW_RESTRICTIONS = model;
-})(globalThis);
+  return model;
+})();
+
+if (typeof window !== "undefined") window.DW_RESTRICTIONS = model;
+
+export default model;

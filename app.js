@@ -1,4 +1,7 @@
 /* DropWise YYC — front-end logic (no framework, no build step). */
+import "./data/restrictions.js";
+import "./data/restriction-calendar.js";
+
 (async () => {
   "use strict";
   const C = window.DW_CONFIG;
