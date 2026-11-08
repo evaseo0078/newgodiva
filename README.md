@@ -79,6 +79,12 @@ How it works
 - Owner: edit details, new invite code (old one stops working), remove members, make someone else owner. Members: leave. The last person leaving deletes the household.
 - Database rules (RLS) block any account from reading or changing another household's records; membership only changes through checked functions.
 
+## Personal records in your account (no household needed)
+When someone is logged in (Supabase), their records are saved to the database even if they haven't joined a household, so they see them on every device. Household members keep sharing household records as before; personal records are private to one account and never count in the quadrant ranking.
+- Existing Supabase project: run `supabase/personal_records.sql` once in the SQL Editor **before** deploying this version (new projects get it from `schema.sql`).
+- Records saved in a browser before logging in to the same account are copied into the account once.
+- "Look around without logging in" still keeps records in that browser only.
+
 ## Discord setup (about 15 minutes)
 1. Create a server, e.g. "DropWise YYC Community", with channels `#water-tips`, `#help-a-neighbour`, `#water-challenge`, `#city-alerts` (make #city-alerts read-only).
 2. **Widget:** Server Settings → Widget → enable *Server Widget*. Copy the **Server ID** into `discord.guildId` in `data/config.js`. Create a never-expiring invite and put it in `discord.inviteUrl`.

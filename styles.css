@@ -829,3 +829,5 @@ html, body { overflow-x: clip; }
 .svc-list li { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.55); border: 1px solid var(--line); }
 .svc-call { white-space: nowrap; font-weight: 700; color: var(--primary); text-decoration: none; }
 .gov-list li { display: grid; padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,.55); border: 1px solid var(--line); }
+
+.sync-note { margin-bottom: 12px; }
