@@ -148,13 +148,12 @@ window.DW_CONFIG = {
 
   // Discord community. Fill in after creating your server (see README → Discord setup).
   discord: {
-    guildId: "",                      // Server ID (Server Settings → Widget → enable "Server Widget", copy Server ID)
-    inviteUrl: "",                    // e.g. https://discord.gg/xxxx (create a never-expiring invite)
+    guildId: "1568738413190844438",                      // Server ID (Server Settings → Widget → enable "Server Widget", copy Server ID)
+    inviteUrl: "https://discord.gg/KHkW7hcxcK",                    // e.g. https://discord.gg/xxxx (create a never-expiring invite)
     channels: [
-      { id: "", name: "water-tips",       icon: "💡", desc: "Share what works in your home to save water." },
-      { id: "", name: "help-a-neighbour", icon: "🤝", desc: "Ask for or offer help — checking on seniors, explaining the rules, frozen-pipe worries." },
-      { id: "", name: "water-challenge",  icon: "🗺️", desc: "Quadrant challenge: daily litres per person by NW, NE, SW and SE." },
-      { id: "", name: "city-alerts",      icon: "📢", desc: "Official City of Calgary notices, re-posted (read-only)." }
+      { id: "1568738507969527868", name: "water-updates",       icon: "📢", desc: "Stay updated on Calgary water restrictions and important announcements." },
+      { id: "1568738542178537715", name: "water-saving-tips", icon: "💡", desc: "Share practical tips to save water at home." },
+      { id: "1568738568837275838", name: "weekly-challenge",  icon: "🏆", desc: "Join our weekly water-saving challenge and compare your progress." }
     ]
   },
 

@@ -758,16 +758,16 @@
   $("#tipForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = $("#tipText").value.trim(), msg = $("#tipMsg");
-    if (text.length < 5) { msg.textContent = "Please write a little more."; return; }
+    if (text.length === 0) { msg.textContent = "Please enter a tip."; return; }
     msg.textContent = "Posting…";
     try {
       await postToDiscord({ type: "tip", text });
       $("#tipText").value = ""; $("#tipCount").textContent = "0 / 280";
-      msg.textContent = "✅ Posted to #water-tips. Thanks for helping your neighbours!";
+      msg.textContent = "✅ Posted to #water-saving-tips. Thanks for helping your neighbours!";
       setTimeout(loadFeed, 1500);
     } catch (err) {
-      try { await navigator.clipboard.writeText(text); msg.textContent = `${err.message} Your tip was copied — paste it in #water-tips on Discord.`; }
-      catch { msg.textContent = `${err.message} Please paste your tip in #water-tips on Discord.`; }
+      try { await navigator.clipboard.writeText(text); msg.textContent = `${err.message} Your tip was copied — paste it in #water-saving-tips on Discord.`; }
+      catch { msg.textContent = `${err.message} Please paste your tip in #water-saving-tips on Discord.`; }
     }
   });
   /* ---------- Calgary map (City of Calgary Open Data — Community District Boundaries GeoJSON) ---------- */
