@@ -27,7 +27,17 @@
   async function q(promise) { const { data, error } = await promise; if (error) throw toError(error); return data; }
   const appUrl = () => new URL("index.html", location.href).href;
 
-  const toReading = (r) => ({ id: r.id, ts: new Date(r.read_at).getTime(), value: Number(r.value), unit: r.unit, litres: Number(r.litres), by: r.recorded_by });
+  const toReading = (r) => ({ id: r.id, ts: new Date(r.read_at).getTime(), value: Number(r.value), unit: r.unit, litres: Number(r.litres), by: r.recorded_by,
+    source: r.source || "manual", reset: !!r.is_reset });
+  // Row for meter_readings. source/is_reset need supabase/meter_reading_quality.sql; until it's run we save without them.
+  let readingExtras = true;
+  const readingRow = (r, hid) => ({ id: r.id, household_id: hid || null, recorded_by: r.by, read_at: new Date(r.ts).toISOString(), value: r.value, unit: r.unit,
+    ...(readingExtras ? { source: r.source || "manual", is_reset: !!r.reset } : {}) });
+  const missingColumn = (e) => /(source|is_reset)/.test(e?.detail || "") && /column|schema cache/i.test(e?.detail || "");
+  async function withReadingExtras(run) {
+    try { return await run(); }
+    catch (e) { if (!readingExtras || !missingColumn(e)) throw e; readingExtras = false; return run(); }
+  }
   const toLog = (l) => ({ id: l.id, activity: l.activity, litres: Number(l.litres), minutes: l.minutes == null ? undefined : Number(l.minutes),
     source: l.source, ts: new Date(l.logged_at).getTime(), by: l.recorded_by });
 
@@ -72,12 +82,11 @@
     // Copy records saved in this browser into your account once (same ids, so repeats are ignored).
     async importPersonal(readings, logs) {
       const opts = { onConflict: "id", ignoreDuplicates: true };
-      if (readings.length) await q(sb.from("meter_readings").upsert(readings.map((r) => ({ id: r.id, household_id: null, recorded_by: r.by,
-        read_at: new Date(r.ts).toISOString(), value: r.value, unit: r.unit })), opts));
+      if (readings.length) await withReadingExtras(() => q(sb.from("meter_readings").upsert(readings.map((r) => readingRow(r, null)), opts)));
       if (logs.length) await q(sb.from("activity_logs").upsert(logs.map((l) => ({ id: l.id, household_id: null, recorded_by: l.by, activity: l.activity,
         litres: l.litres, minutes: l.minutes ?? null, source: l.source || "button", logged_at: new Date(l.ts).toISOString() })), opts));
     },
-    addReading: (hid, r) => q(sb.from("meter_readings").insert({ id: r.id, household_id: hid || null, recorded_by: r.by, read_at: new Date(r.ts).toISOString(), value: r.value, unit: r.unit })),
+    addReading: (hid, r) => withReadingExtras(() => q(sb.from("meter_readings").insert(readingRow(r, hid)))),
     async deleteReading(id) { const rows = await q(sb.from("meter_readings").delete().eq("id", id).select("id")); if (!rows.length) throw toError("forbidden"); },
     addLog: (hid, l) => q(sb.from("activity_logs").insert({ id: l.id, household_id: hid || null, recorded_by: l.by, activity: l.activity, litres: l.litres,
       minutes: l.minutes ?? null, source: l.source || "button", logged_at: new Date(l.ts).toISOString() })),

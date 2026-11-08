@@ -17,7 +17,8 @@ export function dayUsage(date, state = {}, limit) {
   const previousDate = new Date(date + "T12:00:00Z");
   previousDate.setUTCDate(previousDate.getUTCDate() - 1);
   const consecutive = before?.date === previousDate.toISOString().slice(0, 10);
-  const difference = onDay.length && consecutive ? onDay.at(-1).litres - before.litres : null;
+  const resetOnDay = onDay.some(reading => reading.reset); // a replaced/reset meter starts a new baseline — no daily total that day
+  const difference = onDay.length && consecutive && !resetOnDay ? onDay.at(-1).litres - before.litres : null;
   const measured = difference !== null && difference >= 0;
   const used = measured ? difference : entries.length ? entries.reduce((sum, entry) => sum + entry.litres, 0) : null;
   const status = used === null ? "unavailable" : !(Number.isFinite(limit) && limit > 0) ? "unconfigured" : used <= limit ? "ok" : "over";

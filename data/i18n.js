@@ -17,12 +17,7 @@ window.DW_I18N = {
     "meter.hint": "👋 Copy today's meter numbers into the boxes and save. Tomorrow, do it again — DropWise turns the difference into the exact litres used and fixes your log.",
     "meter.blackBox": "Black number",
     "meter.redBox": "Red number",
-    "meter.empty": "Please fill in the boxes with the numbers on your meter, or scan a photo.",
-    "scan.reading": "Reading your meter…",
-    "scan.ok": "AI read {n}. Check it against your meter, then press Save & reconcile. Photo deleted.",
-    "scan.check": "AI read {n} but isn't fully sure — please check it against your meter. Photo deleted.",
-    "scan.unclear": "We couldn't read the numbers clearly. Please type the number. Photo deleted.",
-    "scan.unavailable": "AI photo reading isn't available right now — please type the number from your meter.",
+    "meter.empty": "Please fill in the boxes with the numbers on your meter.",
     "cat.washroom": "Washroom", "cat.dishwasher": "Dishwasher", "cat.laundry": "Laundry", "cat.extra": "Extra",
     "tip.none": "Tap the buttons above as you use water, or read your meter for the exact number.",
     "tip.washroom": "💡 Washroom is {p}% of today's use. The City asks for ~3-minute showers — each minute saved can save up to 8 L.",
@@ -57,17 +52,16 @@ window.DW_I18N = {
     "meter.copy": "계량기에 보이는 숫자를 칸마다 그대로 따라 입력하세요",
     "meter.black": "검은 숫자 = 세제곱미터 (1칸 = 1,000 L)", "meter.red": "빨간 숫자 = 리터",
     "meter.onMeter": "계량기 표시값:", "meter.litres": "리터", "meter.clearBoxes": "칸 비우기",
-    "meter.scan": "📷 계량기 사진 찍기", "meter.save": "저장 후 맞추기",
+    "meter.save": "저장 후 맞추기",
     "guide.title": "수도 계량기 읽는 방법",
     "guide.s1": "<strong>계량기를 찾으세요.</strong> 보통 지하실이나 보일러실, 수도관이 집으로 들어오는 곳 근처에 있어요.",
     "guide.s2": "<strong>숫자 창을 보세요.</strong> 자동차 주행거리계처럼 숫자가 돌아가요.",
     "guide.s3": "<strong>검은 숫자</strong> → 왼쪽부터 검은 칸에 입력하세요. 한 칸이 1세제곱미터(1,000 L)예요.",
     "guide.s4": "<strong>빨간 숫자</strong> → 빨간 칸에 입력하세요. 리터 단위예요.",
     "guide.s5": "<strong>돌아가는 작은 삼각형이나 별 모양은 건너뛰세요</strong> — 누수 표시기라서 숫자에 포함되지 않아요.",
-    "guide.s6": "<strong>'저장 후 맞추기'를 누르세요.</strong> 또는 📷로 사진을 찍으면 칸이 자동으로 채워져요. 꼭 확인해 주세요.",
+    "guide.s6": "<strong>'저장 후 맞추기'를 누르세요.</strong>",
     "guide.s7": "<strong>매일 같은 시간</strong>(예: 아침 식사 후)에 읽으면 하루 사용량이 가장 정확해요.",
     "guide.leak": "💧 <strong>누수 확인:</strong> 30분 동안 물을 전혀 쓰지 마세요. 빨간 숫자나 누수 표시기가 움직이면 물이 새고 있을 수 있어요. 가장 흔한 원인은 계속 물이 흐르는 변기예요.",
-    "guide.privacy": "🔒 사진 보호: 사진은 기기에서 작게 줄인 뒤 숫자를 읽기 위해 한 번만 보내고 바로 버려요. 기기에도 서버에도 저장되지 않아요.",
     "guide.note": "계량기마다 달라요. 검은 숫자가 더 많으면 '+ box'를 누르세요 (사진 인식 시 자동으로 늘어나요). 그림은 예시이며 특정 모델이 아니에요.",
     "rules.title": "4단계 제한 한눈에 보기", "rules.sub": "지금 할 수 있는 것과 없는 것을 쉬운 말로 정리했어요.",
     "rules.no": "🚫 실외 금지", "rules.yes": "✅ 허용", "rules.home": "🏠 실내에서 도울 수 있는 일",
@@ -83,7 +77,6 @@ window.DW_I18N = {
     "comm.title": "캘거리 물 절약 커뮤니티", "comm.sub": "Discord에서 이웃과 이야기하고, 팁을 나누고, 제한 기간을 함께 이겨내요.",
     "comm.share": "물 절약 팁 공유하기", "comm.post": "#water-tips에 올리기",
     "comm.fine": "게시물은 Discord에 공개되며 동네 이름만 표시돼요. 주소나 개인정보는 쓰지 마세요. DropWise 팀이 관리해요.",
-    "comm.latest": "#water-tips 최신 글", "comm.311": "우리 동네 311 물 관련 신고",
     "comm.ph": "예: 샤워할 때 양동이로 찬물을 받아 화분에 줘요.",
     "chat.title": "DropBot에게 물어보세요", "chat.sub": "제한 규칙, 우리 집 사용량, 물 절약 방법을 물어보세요. 어떤 언어로든 괜찮아요.",
     "chat.send": "보내기", "chat.ph": "예: 5인 가족은 빨래를 얼마나 자주 하면 좋을까요?",
@@ -98,12 +91,7 @@ window.DW_I18N = {
     "tank.safe": "잘하고 있어요.", "tank.amber": "거의 다 찼어요 — 남은 하루는 아껴 주세요.", "tank.over": "넘쳤어요! 오늘 목표를 초과했어요.",
     "meter.hint": "👋 오늘 계량기 숫자를 칸에 따라 입력하고 저장하세요. 내일 한 번 더 하면 차이로 정확한 사용량을 계산하고 기록을 맞춰 드려요.",
     "meter.blackBox": "검은 숫자", "meter.redBox": "빨간 숫자",
-    "meter.empty": "계량기 숫자를 칸에 입력하거나 사진을 찍어 주세요.",
-    "scan.reading": "계량기를 읽는 중…",
-    "scan.ok": "AI가 {n}로 읽고 칸을 채웠어요. 계량기와 비교해 확인한 뒤 '저장 후 맞추기'를 누르세요. 사진은 삭제했어요.",
-    "scan.check": "AI가 {n}로 읽었지만 확실하지 않아요. 칸마다 계량기와 비교해 주세요. 사진은 삭제했어요.",
-    "scan.unclear": "숫자를 또렷하게 읽지 못했어요. 칸에 직접 입력해 주세요. 사진은 삭제했어요.",
-    "scan.unavailable": "지금은 AI 사진 인식을 쓸 수 없어요. 칸에 숫자를 직접 입력해 주세요.",
+    "meter.empty": "계량기 숫자를 칸에 입력해 주세요.",
     "cat.washroom": "욕실", "cat.dishwasher": "식기세척기", "cat.laundry": "세탁", "cat.extra": "기타",
     "tip.none": "물을 쓸 때마다 위 버튼을 누르거나, 계량기를 읽어 정확한 숫자를 넣어 보세요.",
     "tip.washroom": "💡 오늘 사용량의 {p}%가 욕실이에요. 시는 약 3분 샤워를 권해요 — 1분 줄일 때마다 최대 8 L를 아껴요.",
@@ -139,17 +127,16 @@ window.DW_I18N = {
     "meter.copy": "按照水表上的数字，一格一格照着输入",
     "meter.black": "黑色数字 = 立方米（每格 1,000 升）", "meter.red": "红色数字 = 升",
     "meter.onMeter": "水表显示", "meter.litres": "升", "meter.clearBoxes": "清空格子",
-    "meter.scan": "📷 拍水表照片", "meter.save": "保存并核对",
+    "meter.save": "保存并核对",
     "guide.title": "如何读水表",
     "guide.s1": "<strong>找到水表。</strong>通常在地下室或设备间，靠近水管进屋的地方。",
     "guide.s2": "<strong>看数字窗口。</strong>它像汽车里程表一样转动。",
     "guide.s3": "<strong>黑色数字</strong> → 从左到右填入黑色格子。每一格代表 1 立方米（1,000 升）。",
     "guide.s4": "<strong>红色数字</strong> → 填入红色格子，单位是升。",
     "guide.s5": "<strong>跳过转动的小三角或星形</strong> — 那是漏水指示器，不属于读数。",
-    "guide.s6": "<strong>按“保存并核对”。</strong>也可以点 📷 拍照自动填写，然后请检查。",
+    "guide.s6": "<strong>按“保存并核对”。</strong>",
     "guide.s7": "<strong>每天同一时间</strong>（例如早餐后）读表，每日用量最准确。",
     "guide.leak": "💧 <strong>漏水检查：</strong>30 分钟内完全不用水。如果红色数字或漏水指示器在动，可能有漏水 — 最常见的是马桶一直流水。",
-    "guide.privacy": "🔒 照片隐私：照片先在您的设备上缩小，只发送一次用于读数，随后立即删除，不会保存在设备或服务器上。",
     "guide.note": "水表各不相同。如果黑色数字更多，请点“+ box”（拍照识别时会自动增加）。图示仅为示例，并非特定型号。",
     "rules.title": "第四阶段限制一览", "rules.sub": "用简单的话说明现在能做什么、不能做什么。",
     "rules.no": "🚫 户外禁止", "rules.yes": "✅ 仍然允许", "rules.home": "🏠 在家可以这样做",
@@ -165,7 +152,6 @@ window.DW_I18N = {
     "comm.title": "卡尔加里节水社区", "comm.sub": "在 Discord 上与邻居交流、分享窍门，一起度过限制期。",
     "comm.share": "分享节水小窍门", "comm.post": "发布到 #water-tips",
     "comm.fine": "帖子在 Discord 公开，只显示社区名称。请勿分享地址或个人信息。由 DropWise 团队管理。",
-    "comm.latest": "#water-tips 最新内容", "comm.311": "附近向 311 报告的用水问题",
     "comm.ph": "例如：洗澡时用桶接冷水浇花。",
     "chat.title": "问问 DropBot", "chat.sub": "关于限制规定、我家用水或节水方法，都可以问。任何语言都可以。",
     "chat.send": "发送", "chat.ph": "例如：五口之家多久洗一次衣服比较好？",
@@ -180,12 +166,7 @@ window.DW_I18N = {
     "tank.safe": "做得很好。", "tank.amber": "快满了 — 今天剩下的时间请节约。", "tank.over": "溢出了！已超过今日目标。",
     "meter.hint": "👋 把今天的水表数字照着填进格子并保存。明天再做一次，DropWise 会用差额算出准确用水量并修正记录。",
     "meter.blackBox": "黑色数字", "meter.redBox": "红色数字",
-    "meter.empty": "请把水表上的数字填进格子，或拍一张照片。",
-    "scan.reading": "正在读取水表…",
-    "scan.ok": "AI 读到 {n}并已填好格子。请与水表核对后按“保存并核对”。照片已删除。",
-    "scan.check": "AI 读到 {n}，但不太确定 — 请逐格与水表核对。照片已删除。",
-    "scan.unclear": "无法清楚读出数字，请手动填写格子。照片已删除。",
-    "scan.unavailable": "目前无法使用 AI 照片识别，请手动填写格子。",
+    "meter.empty": "请把水表上的数字填进格子。",
     "cat.washroom": "卫浴", "cat.dishwasher": "洗碗机", "cat.laundry": "洗衣", "cat.extra": "其他",
     "tip.none": "用水时点上面的按钮，或读水表获得准确数字。",
     "tip.washroom": "💡 卫浴占今天用水的 {p}%。市政府建议淋浴约 3 分钟 — 每少 1 分钟最多可省 8 升。",
@@ -221,17 +202,16 @@ window.DW_I18N = {
     "meter.copy": "मीटर पर दिख रहे अंक हर खाने में वैसे ही भरें",
     "meter.black": "काले अंक = घन मीटर (हर एक = 1,000 लीटर)", "meter.red": "लाल अंक = लीटर",
     "meter.onMeter": "आपका मीटर दिखा रहा है", "meter.litres": "लीटर", "meter.clearBoxes": "खाने खाली करें",
-    "meter.scan": "📷 मीटर की फ़ोटो लें", "meter.save": "सेव करें और मिलान करें",
+    "meter.save": "सेव करें और मिलान करें",
     "guide.title": "पानी का मीटर कैसे पढ़ें",
     "guide.s1": "<strong>मीटर ढूँढें।</strong> यह अक्सर बेसमेंट या यूटिलिटी रूम में, जहाँ पानी की पाइप घर में आती है, वहाँ होता है।",
     "guide.s2": "<strong>अंकों वाली खिड़की देखें।</strong> यह गाड़ी के ओडोमीटर की तरह घूमती है।",
     "guide.s3": "<strong>काले अंक</strong> → बाएँ से दाएँ काले खानों में भरें। हर अंक एक घन मीटर (1,000 लीटर) है।",
     "guide.s4": "<strong>लाल अंक</strong> → लाल खानों में भरें। ये लीटर हैं।",
     "guide.s5": "<strong>घूमने वाला छोटा त्रिकोण या तारा छोड़ दें</strong> — यह रिसाव सूचक है, रीडिंग का हिस्सा नहीं।",
-    "guide.s6": "<strong>“सेव करें और मिलान करें” दबाएँ।</strong> या 📷 से फ़ोटो लेकर खाने अपने-आप भरें, फिर जाँच लें।",
+    "guide.s6": "<strong>“सेव करें और मिलान करें” दबाएँ।</strong>",
     "guide.s7": "<strong>हर दिन एक ही समय</strong> (जैसे नाश्ते के बाद) पढ़ने से दैनिक उपयोग सबसे सटीक मिलता है।",
     "guide.leak": "💧 <strong>रिसाव जाँच:</strong> 30 मिनट तक बिल्कुल पानी न चलाएँ। अगर लाल अंक या रिसाव सूचक हिले, तो रिसाव हो सकता है — सबसे आम कारण लगातार चलता टॉयलेट है।",
-    "guide.privacy": "🔒 फ़ोटो गोपनीयता: फ़ोटो पहले आपके डिवाइस पर छोटी की जाती है, अंक पढ़ने के लिए एक बार भेजी जाती है और फिर हटा दी जाती है। यह न डिवाइस पर, न हमारे सर्वर पर सेव होती है।",
     "guide.note": "मीटर अलग-अलग होते हैं। अगर काले अंक ज़्यादा हैं तो “+ box” दबाएँ (फ़ोटो स्कैन पर अपने-आप बढ़ते हैं)। चित्र केवल उदाहरण है।",
     "rules.title": "स्टेज 4 एक नज़र में", "rules.sub": "अभी क्या कर सकते हैं और क्या नहीं — आसान शब्दों में।",
     "rules.no": "🚫 बाहर मना है", "rules.yes": "✅ अब भी अनुमति है", "rules.home": "🏠 घर के अंदर कैसे मदद करें",
@@ -247,7 +227,6 @@ window.DW_I18N = {
     "comm.title": "कैलगरी जल समुदाय", "comm.sub": "Discord पर पड़ोसियों से बात करें, सुझाव साझा करें और प्रतिबंध के समय एक-दूसरे की मदद करें।",
     "comm.share": "पानी बचाने का सुझाव साझा करें", "comm.post": "#water-tips पर पोस्ट करें",
     "comm.fine": "पोस्ट Discord पर सार्वजनिक होती हैं और केवल मोहल्ले का नाम दिखता है। अपना पता या निजी जानकारी न लिखें। DropWise टीम द्वारा संचालित।",
-    "comm.latest": "#water-tips से नया", "comm.311": "आपके पास 311 पर दर्ज पानी की समस्याएँ",
     "comm.ph": "जैसे: नहाते समय बाल्टी में ठंडा पानी भरकर पौधों में डालते हैं।",
     "chat.title": "DropBot से पूछें", "chat.sub": "प्रतिबंध, घर का उपयोग या पानी बचाने के बारे में पूछें। किसी भी भाषा में।",
     "chat.send": "भेजें", "chat.ph": "जैसे: 5 लोगों का परिवार कितनी बार कपड़े धोए?",
@@ -262,12 +241,7 @@ window.DW_I18N = {
     "tank.safe": "बहुत बढ़िया।", "tank.amber": "लगभग भर गया — बाकी दिन संभलकर।", "tank.over": "छलक गया! आज का लक्ष्य पार हो गया।",
     "meter.hint": "👋 आज के मीटर अंक खानों में भरें और सेव करें। कल फिर करें — अंतर से सटीक लीटर निकलेगा और रिकॉर्ड ठीक होगा।",
     "meter.blackBox": "काला अंक", "meter.redBox": "लाल अंक",
-    "meter.empty": "कृपया मीटर के अंक खानों में भरें, या फ़ोटो लें।",
-    "scan.reading": "मीटर पढ़ा जा रहा है…",
-    "scan.ok": "AI ने {n} पढ़ा और खाने भर दिए। मीटर से मिलाकर “सेव करें और मिलान करें” दबाएँ। फ़ोटो हटा दी गई।",
-    "scan.check": "AI ने {n} पढ़ा, पर पूरी तरह पक्का नहीं — हर खाना मीटर से मिलाएँ। फ़ोटो हटा दी गई।",
-    "scan.unclear": "अंक साफ़ नहीं पढ़े जा सके। कृपया खानों में खुद भरें। फ़ोटो हटा दी गई।",
-    "scan.unavailable": "अभी AI फ़ोटो पढ़ना उपलब्ध नहीं है — कृपया अंक खानों में भरें।",
+    "meter.empty": "कृपया मीटर के अंक खानों में भरें।",
     "cat.washroom": "बाथरूम", "cat.dishwasher": "डिशवॉशर", "cat.laundry": "कपड़े धुलाई", "cat.extra": "अन्य",
     "tip.none": "पानी इस्तेमाल करते समय ऊपर के बटन दबाएँ, या सटीक संख्या के लिए मीटर पढ़ें।",
     "tip.washroom": "💡 आज के उपयोग का {p}% बाथरूम में है। शहर लगभग 3 मिनट के शावर की सलाह देता है — हर बचाया मिनट 8 लीटर तक बचाता है।",
@@ -303,17 +277,16 @@ window.DW_I18N = {
     "meter.copy": "انسخ أرقام العداد كما هي، خانة بخانة",
     "meter.black": "الأرقام السوداء = متر مكعب (كل خانة = 1,000 لتر)", "meter.red": "الأرقام الحمراء = لترات",
     "meter.onMeter": "يعرض العداد", "meter.litres": "لتر", "meter.clearBoxes": "إفراغ الخانات",
-    "meter.scan": "📷 صوّر العداد", "meter.save": "حفظ ومطابقة",
+    "meter.save": "حفظ ومطابقة",
     "guide.title": "كيف تقرأ عداد المياه",
     "guide.s1": "<strong>ابحث عن العداد.</strong> غالبًا في القبو أو غرفة المرافق، قرب مكان دخول أنبوب المياه إلى المنزل.",
     "guide.s2": "<strong>انظر إلى نافذة الأرقام.</strong> تعمل مثل عداد المسافات في السيارة.",
     "guide.s3": "<strong>الأرقام السوداء</strong> ← اكتبها في الخانات السوداء من اليسار إلى اليمين. كل رقم = متر مكعب (1,000 لتر).",
     "guide.s4": "<strong>الأرقام الحمراء</strong> ← اكتبها في الخانات الحمراء. هذه لترات.",
     "guide.s5": "<strong>تجاهل المثلث أو النجمة الصغيرة الدوّارة</strong> — إنها مؤشر تسرب وليست جزءًا من القراءة.",
-    "guide.s6": "<strong>اضغط «حفظ ومطابقة».</strong> أو اضغط 📷 لملء الخانات من صورة، ثم تحقق منها.",
+    "guide.s6": "<strong>اضغط «حفظ ومطابقة».</strong>",
     "guide.s7": "<strong>في الوقت نفسه كل يوم</strong> (مثلًا بعد الإفطار) تحصل على أدق رقم يومي.",
     "guide.leak": "💧 <strong>فحص التسرب:</strong> لا تستخدم أي ماء لمدة 30 دقيقة. إذا تحركت الأرقام الحمراء أو مؤشر التسرب فقد يوجد تسرب — أشيع سبب هو المرحاض الذي يجري ماؤه باستمرار.",
-    "guide.privacy": "🔒 خصوصية الصورة: تُصغَّر الصورة على جهازك، وتُرسل مرة واحدة لقراءة الرقم، ثم تُحذف فورًا. لا تُحفظ على جهازك ولا على خادمنا.",
     "guide.note": "العدادات مختلفة. إذا كان في عدادك أرقام سوداء أكثر فاضغط «+ box» (تُضاف تلقائيًا عند المسح). الرسم مثال فقط.",
     "rules.title": "المرحلة 4 باختصار", "rules.sub": "ما يمكنك وما لا يمكنك فعله الآن، بكلمات بسيطة.",
     "rules.no": "🚫 ممنوع في الخارج", "rules.yes": "✅ ما زال مسموحًا", "rules.home": "🏠 كيف تساعد داخل المنزل",
@@ -329,7 +302,6 @@ window.DW_I18N = {
     "comm.title": "مجتمع كالجاري للمياه", "comm.sub": "تحدث مع جيرانك، وشارك النصائح، وتعاونوا خلال فترة القيود — على Discord.",
     "comm.share": "شارك نصيحة لتوفير المياه", "comm.post": "انشر في #water-tips",
     "comm.fine": "المنشورات علنية على Discord ويظهر فيها اسم الحي فقط. لا تشارك عنوانك أو بياناتك الشخصية. يشرف عليها فريق DropWise.",
-    "comm.latest": "الأحدث من #water-tips", "comm.311": "مشكلات المياه المبلّغ عنها إلى 311 قربك",
     "comm.ph": "مثال: نجمع الماء البارد في دلو أثناء الاستحمام لسقي النباتات.",
     "chat.title": "اسأل DropBot", "chat.sub": "اسأل عن القيود أو استهلاك منزلك أو طرق التوفير. بأي لغة.",
     "chat.send": "إرسال", "chat.ph": "مثال: كم مرة يجب أن تغسل أسرة من 5 أفراد الملابس؟",
@@ -344,12 +316,7 @@ window.DW_I18N = {
     "tank.safe": "أحسنت.", "tank.amber": "اقترب من الامتلاء — وفّر لبقية اليوم.", "tank.over": "فاض! تجاوزت هدف اليوم.",
     "meter.hint": "👋 انسخ أرقام العداد اليوم في الخانات واحفظها. كرر ذلك غدًا — يحسب DropWise الفرق باللترات بدقة ويصحح سجلك.",
     "meter.blackBox": "رقم أسود", "meter.redBox": "رقم أحمر",
-    "meter.empty": "يرجى ملء الخانات بأرقام العداد، أو التقاط صورة.",
-    "scan.reading": "جارٍ قراءة العداد…",
-    "scan.ok": "قرأ الذكاء الاصطناعي {n} وملأ الخانات. طابقها مع العداد ثم اضغط «حفظ ومطابقة». تم حذف الصورة.",
-    "scan.check": "قرأ الذكاء الاصطناعي {n} لكنه غير متأكد تمامًا — طابق كل خانة مع العداد. تم حذف الصورة.",
-    "scan.unclear": "تعذّرت قراءة الأرقام بوضوح. يرجى كتابتها في الخانات. تم حذف الصورة.",
-    "scan.unavailable": "قراءة الصور بالذكاء الاصطناعي غير متاحة الآن — يرجى كتابة الأرقام في الخانات.",
+    "meter.empty": "يرجى ملء الخانات بأرقام العداد.",
     "cat.washroom": "الحمّام", "cat.dishwasher": "غسالة الصحون", "cat.laundry": "الغسيل", "cat.extra": "أخرى",
     "tip.none": "اضغط الأزرار أعلاه عند استخدام الماء، أو اقرأ العداد للحصول على الرقم الدقيق.",
     "tip.washroom": "💡 الحمّام {p}% من استهلاك اليوم. تطلب المدينة استحمامًا لنحو 3 دقائق — كل دقيقة توفرها قد توفر حتى 8 لترات.",
@@ -372,7 +339,7 @@ window.DW_I18N = {
 Object.assign(window.DW_I18N.en, {
   "act.shower": "Shower (3 min)",
   "meter.hint": "👋 Type the number on your meter, pick its unit, and save. Next time, DropWise turns the difference into litres and fixes your log.",
-  "meter.empty": "Please type the number on your meter (decimals are fine), or scan a photo.",
+  "meter.empty": "Please type the number on your meter (decimals are fine).",
   "meter.last": "Last reading:", "meter.today": "Measured today:", "meter.tomorrow": "Save another reading tomorrow to measure a full day.",
   "meter.noReadings": "No readings yet.",
   "meter.sincePrev": "({n} since your previous reading)",
@@ -396,7 +363,7 @@ Object.assign(window.DW_I18N.ko, {
   "meter.equals": "환산하면", "meter.onMeterTotal": "(계량기 누적값)", "meter.history": "최근 계량기 기록",
   "meter.colTime": "시각", "meter.colReading": "계량기 값", "meter.colDiff": "이전 기록과의 차이",
   "meter.hint": "👋 계량기 숫자를 입력하고 단위를 고른 뒤 저장하세요. 다음 기록부터 차이를 리터로 계산해서 기록을 맞춰 드려요.",
-  "meter.empty": "계량기 숫자를 입력하거나(소수점 가능) 사진을 찍어 주세요.",
+  "meter.empty": "계량기 숫자를 입력해 주세요(소수점 가능).",
   "meter.last": "마지막 기록:", "meter.today": "오늘 측정량:", "meter.tomorrow": "내일 한 번 더 기록하면 하루 사용량을 알 수 있어요.",
   "meter.noReadings": "아직 기록이 없어요.", "meter.sincePrev": "(이전 기록 이후 {n})",
   "meter.lower": "⚠️ 이전 기록({r})보다 작아요. 숫자와 단위를 확인해 주세요.",
@@ -410,7 +377,7 @@ Object.assign(window.DW_I18N.ko, {
   "guide.s2": "<strong>단위를 확인하세요.</strong> 계량기 판에 <strong>m³</strong>(세제곱미터) 또는 <strong>ft³ / CU FT</strong>(세제곱피트)가 쓰여 있어요. 단위 칸에서 같은 것을 고르세요.",
   "guide.s3": "<strong>왼쪽부터 숫자를 읽으세요.</strong> 검은 숫자가 정수 부분이에요.",
   "guide.s4": "<strong>빨간 숫자나 작은 숫자는 소수점 뒤예요.</strong> 예: 검은 01234 + 빨간 567 → <strong>1234.567</strong> 입력",
-  "guide.s6": "<strong>'저장 후 맞추기'를 누르세요.</strong> 시각은 자동으로 채워지고, 더 일찍 읽었다면 바꿀 수 있어요. 📷로 사진을 찍으면 숫자가 자동으로 채워져요. 꼭 확인해 주세요.",
+  "guide.s6": "<strong>'저장 후 맞추기'를 누르세요.</strong> 시각은 자동으로 채워지고, 더 일찍 읽었다면 바꿀 수 있어요.",
   "guide.note": "계량기마다 달라요 — 세제곱미터나 세제곱피트로 표시되고 자릿수도 달라요. 모든 기록은 리터로 환산돼요 (1 m³ = 1,000 L, 1 ft³ ≈ 28.3 L). 그림은 예시예요.",
   "user.guest": "게스트", "user.login": "로그인", "user.logout": "로그아웃", "user.confirmLogout": "이 기기에서 DropWise 로그아웃할까요?",
   "login.title": "DropWise에 로그인", "login.sub": "로그인하면 우리 집 물 사용 기록을 계정별로 따로 저장할 수 있어요.",
@@ -431,7 +398,7 @@ Object.assign(window.DW_I18N.zh, {
   "meter.equals": "换算为", "meter.onMeterTotal": "（水表累计值）", "meter.history": "最近读数",
   "meter.colTime": "时间", "meter.colReading": "读数", "meter.colDiff": "与上次相比",
   "meter.hint": "👋 输入水表上的数字，选择单位并保存。下次记录时，DropWise 会把差额换算成升并修正记录。",
-  "meter.empty": "请输入水表上的数字（可以有小数），或拍一张照片。",
+  "meter.empty": "请输入水表上的数字（可以有小数）。",
   "meter.last": "上次读数：", "meter.today": "今日实测：", "meter.tomorrow": "明天再记录一次即可得到全天用量。",
   "meter.noReadings": "还没有读数。", "meter.sincePrev": "（自上次读数以来 {n}）",
   "meter.lower": "⚠️ 比上次读数（{r}）还小，请检查数字和单位。",
@@ -445,7 +412,7 @@ Object.assign(window.DW_I18N.zh, {
   "guide.s2": "<strong>确认单位。</strong>表盘上印有 <strong>m³</strong>（立方米）或 <strong>ft³ / CU FT</strong>（立方英尺），在单位栏选择相同的。",
   "guide.s3": "<strong>从左到右读数字。</strong>黑色数字是整数部分。",
   "guide.s4": "<strong>红色或较小的数字在小数点后。</strong>例如：黑色 01234 + 红色 567 → 输入 <strong>1234.567</strong>。",
-  "guide.s6": "<strong>按“保存并核对”。</strong>时间会自动填写，如果更早读的可以修改。也可以点 📷 拍照自动填写数字，然后请检查。",
+  "guide.s6": "<strong>按“保存并核对”。</strong>时间会自动填写，如果更早读的可以修改。",
   "guide.note": "水表各不相同 — 有的用立方米，有的用立方英尺，位数也不同。所有读数都会换算成升（1 m³ = 1,000 升，1 ft³ ≈ 28.3 升）。图示仅为示例。",
   "user.guest": "访客", "user.login": "登录", "user.logout": "退出", "user.confirmLogout": "要在此设备上退出 DropWise 吗？",
   "login.title": "登录 DropWise", "login.sub": "登录后，可以按账户分别保存您家的用水记录。",
@@ -466,7 +433,7 @@ Object.assign(window.DW_I18N.hi, {
   "meter.equals": "यानी", "meter.onMeterTotal": "(मीटर का कुल)", "meter.history": "हाल की रीडिंग",
   "meter.colTime": "समय", "meter.colReading": "रीडिंग", "meter.colDiff": "पिछली रीडिंग से अंतर",
   "meter.hint": "👋 मीटर की संख्या लिखें, इकाई चुनें और सेव करें। अगली बार DropWise अंतर को लीटर में बदलकर रिकॉर्ड ठीक करेगा।",
-  "meter.empty": "कृपया मीटर की संख्या लिखें (दशमलव चलेगा), या फ़ोटो लें।",
+  "meter.empty": "कृपया मीटर की संख्या लिखें (दशमलव चलेगा)।",
   "meter.last": "पिछली रीडिंग:", "meter.today": "आज मापा गया:", "meter.tomorrow": "पूरे दिन का माप देखने के लिए कल फिर रीडिंग सेव करें।",
   "meter.noReadings": "अभी कोई रीडिंग नहीं।", "meter.sincePrev": "(पिछली रीडिंग से {n})",
   "meter.lower": "⚠️ यह पिछली रीडिंग ({r}) से कम है। संख्या और इकाई जाँचें।",
@@ -480,7 +447,7 @@ Object.assign(window.DW_I18N.hi, {
   "guide.s2": "<strong>इकाई देखें।</strong> मीटर पर <strong>m³</strong> (घन मीटर) या <strong>ft³ / CU FT</strong> (घन फ़ुट) लिखा होता है — इकाई बॉक्स में वही चुनें।",
   "guide.s3": "<strong>बाएँ से दाएँ अंक पढ़ें।</strong> काले अंक पूरे हिस्से हैं।",
   "guide.s4": "<strong>लाल या छोटे अंक दशमलव के बाद आते हैं।</strong> उदाहरण: काले 01234 + लाल 567 → <strong>1234.567</strong> लिखें।",
-  "guide.s6": "<strong>“सेव करें और मिलान करें” दबाएँ।</strong> समय अपने-आप भरता है — पहले पढ़ा हो तो बदल दें। या 📷 से फ़ोटो लेकर संख्या भरें, फिर जाँचें।",
+  "guide.s6": "<strong>“सेव करें और मिलान करें” दबाएँ।</strong> समय अपने-आप भरता है — पहले पढ़ा हो तो बदल दें।",
   "guide.note": "मीटर अलग-अलग होते हैं — कुछ घन मीटर, कुछ घन फ़ुट दिखाते हैं और अंकों की संख्या भी अलग होती है। हर रीडिंग लीटर में बदली जाती है (1 m³ = 1,000 L, 1 ft³ ≈ 28.3 L)। चित्र केवल उदाहरण है।",
   "user.guest": "अतिथि", "user.login": "लॉग इन", "user.logout": "लॉग आउट", "user.confirmLogout": "इस डिवाइस पर DropWise से लॉग आउट करें?",
   "login.title": "DropWise में लॉग इन करें", "login.sub": "लॉग इन करके अपने घर के पानी का रिकॉर्ड अपने खाते में अलग रख सकते हैं।",
@@ -501,7 +468,7 @@ Object.assign(window.DW_I18N.ar, {
   "meter.equals": "أي", "meter.onMeterTotal": "(إجمالي العداد)", "meter.history": "أحدث القراءات",
   "meter.colTime": "الوقت", "meter.colReading": "القراءة", "meter.colDiff": "الفرق عن السابقة",
   "meter.hint": "👋 اكتب رقم العداد واختر وحدته ثم احفظ. في المرة القادمة يحوّل DropWise الفرق إلى لترات ويصحح سجلك.",
-  "meter.empty": "يرجى كتابة رقم العداد (يمكن استخدام الكسور العشرية)، أو التقاط صورة.",
+  "meter.empty": "يرجى كتابة رقم العداد (يمكن استخدام الكسور العشرية).",
   "meter.last": "آخر قراءة:", "meter.today": "المقاس اليوم:", "meter.tomorrow": "احفظ قراءة أخرى غدًا لقياس يوم كامل.",
   "meter.noReadings": "لا توجد قراءات بعد.", "meter.sincePrev": "({n} منذ القراءة السابقة)",
   "meter.lower": "⚠️ هذا أقل من القراءة السابقة ({r}). تحقق من الرقم والوحدة.",
@@ -515,7 +482,7 @@ Object.assign(window.DW_I18N.ar, {
   "guide.s2": "<strong>تحقق من الوحدة.</strong> ابحث عن <strong>m³</strong> (متر مكعب) أو <strong>ft³ / CU FT</strong> (قدم مكعب) على واجهة العداد، واخترها في خانة الوحدة.",
   "guide.s3": "<strong>اقرأ الأرقام من اليسار إلى اليمين.</strong> الأرقام السوداء هي الجزء الصحيح.",
   "guide.s4": "<strong>الأرقام الحمراء أو الأصغر تأتي بعد الفاصلة العشرية.</strong> مثال: الأسود 01234 + الأحمر 567 ← اكتب <strong>1234.567</strong>.",
-  "guide.s6": "<strong>اضغط «حفظ ومطابقة».</strong> يُملأ الوقت تلقائيًا — غيّره إن قرأت العداد قبل ذلك. أو اضغط 📷 لملء الرقم من صورة، ثم تحقق منه.",
+  "guide.s6": "<strong>اضغط «حفظ ومطابقة».</strong> يُملأ الوقت تلقائيًا — غيّره إن قرأت العداد قبل ذلك.",
   "guide.note": "العدادات مختلفة — بعضها بالمتر المكعب وبعضها بالقدم المكعب، ويختلف عدد الأرقام. تُحوَّل كل قراءة إلى لترات (1 م³ = 1,000 لتر، 1 قدم³ ≈ 28.3 لتر). الرسم مثال فقط.",
   "user.guest": "ضيف", "user.login": "تسجيل الدخول", "user.logout": "تسجيل الخروج", "user.confirmLogout": "هل تريد تسجيل الخروج من DropWise على هذا الجهاز؟",
   "login.title": "سجّل الدخول إلى DropWise", "login.sub": "بعد تسجيل الدخول تُحفظ سجلات استهلاك منزلك في حسابك بشكل منفصل.",
@@ -529,30 +496,6 @@ Object.assign(window.DW_I18N.ar, {
   "login.exists": "يوجد حساب بهذا البريد على هذا الجهاز. يرجى تسجيل الدخول.",
   "login.wrong": "البريد الإلكتروني أو كلمة المرور غير صحيحة.", "login.noName": "يرجى إدخال اسمك.",
   "login.googleOff": "تسجيل الدخول عبر Google غير مُفعّل بعد (يلزم معرّف عميل Google — راجع README)."
-});
-Object.assign(window.DW_I18N.ko, {
-  "scan.ok": "AI가 {n}로 읽었어요. 계량기와 비교해 확인한 뒤 '저장 후 맞추기'를 누르세요. 사진은 삭제했어요.",
-  "scan.check": "AI가 {n}로 읽었지만 확실하지 않아요. 계량기와 비교해 주세요. 사진은 삭제했어요.",
-  "scan.unclear": "숫자를 또렷하게 읽지 못했어요. 직접 입력해 주세요. 사진은 삭제했어요.",
-  "scan.unavailable": "지금은 AI 사진 인식을 쓸 수 없어요. 계량기 숫자를 직접 입력해 주세요."
-});
-Object.assign(window.DW_I18N.zh, {
-  "scan.ok": "AI 读到 {n}。请与水表核对后按“保存并核对”。照片已删除。",
-  "scan.check": "AI 读到 {n}，但不太确定 — 请与水表核对。照片已删除。",
-  "scan.unclear": "无法清楚读出数字，请手动输入。照片已删除。",
-  "scan.unavailable": "目前无法使用 AI 照片识别，请手动输入水表数字。"
-});
-Object.assign(window.DW_I18N.hi, {
-  "scan.ok": "AI ने {n} पढ़ा। मीटर से मिलाकर “सेव करें और मिलान करें” दबाएँ। फ़ोटो हटा दी गई।",
-  "scan.check": "AI ने {n} पढ़ा, पर पूरी तरह पक्का नहीं — मीटर से मिलाएँ। फ़ोटो हटा दी गई।",
-  "scan.unclear": "अंक साफ़ नहीं पढ़े जा सके। कृपया संख्या खुद लिखें। फ़ोटो हटा दी गई।",
-  "scan.unavailable": "अभी AI फ़ोटो पढ़ना उपलब्ध नहीं है — कृपया मीटर की संख्या लिखें।"
-});
-Object.assign(window.DW_I18N.ar, {
-  "scan.ok": "قرأ الذكاء الاصطناعي {n}. طابقه مع العداد ثم اضغط «حفظ ومطابقة». تم حذف الصورة.",
-  "scan.check": "قرأ الذكاء الاصطناعي {n} لكنه غير متأكد — طابقه مع العداد. تم حذف الصورة.",
-  "scan.unclear": "تعذّرت قراءة الأرقام بوضوح. يرجى كتابة الرقم. تم حذف الصورة.",
-  "scan.unavailable": "قراءة الصور بالذكاء الاصطناعي غير متاحة الآن — يرجى كتابة رقم العداد."
 });
 
 /* ---- Stage 4 explainer (status pill tooltip) ---- */
@@ -646,7 +589,7 @@ Object.assign(window.DW_I18N.en, {
 });
 Object.assign(window.DW_I18N.ko, {
   "today.fine": "버튼과 샤워 타이머는 <strong>추정치</strong>예요 (캘거리시 수치 기준). 수도 계량기가 <strong>실측</strong> 총량이에요. 계량기에 이미 모든 사용량이 들어 있으니 추정치를 더하지 않아요.",
-  "guide.s6": "<strong>'기록 저장'을 누르세요.</strong> 시각은 자동으로 채워지고, 더 일찍 읽었다면 바꿀 수 있어요. 📷로 사진을 찍으면 숫자가 자동으로 채워져요. 꼭 확인해 주세요.",
+  "guide.s6": "<strong>'기록 저장'을 누르세요.</strong> 시각은 자동으로 채워지고, 더 일찍 읽었다면 바꿀 수 있어요.",
   "hh.title": "우리 집", "hh.sub": "가족 모두 각자 휴대폰으로 기록하면 DropWise가 집 전체로 합산해요.",
   "share.join": "사분면 챌린지 참여 — 우리 집 1인당 하루 사용량을 사분면 랭킹에 공유해요 (이름·주소·동네는 공개되지 않아요)",
   "hh.shareLabel": "우리 집을 사분면 랭킹에 포함하기 (가구당 1회 집계, 평균만 공개)",
@@ -704,7 +647,7 @@ Object.assign(window.DW_I18N.ko, {
 });
 Object.assign(window.DW_I18N.zh, {
   "today.fine": "按钮和淋浴计时器给出的是<strong>估算</strong>（依据卡尔加里市数据）。水表给出的是<strong>实测</strong>总量。估算不会再加到水表总量上 — 水表已经包含了所有用水。",
-  "guide.s6": "<strong>按“保存读数”。</strong>时间会自动填写，如果更早读的可以修改。也可以点 📷 拍照自动填写数字，然后请检查。",
+  "guide.s6": "<strong>按“保存读数”。</strong>时间会自动填写，如果更早读的可以修改。",
   "hh.title": "我家", "hh.sub": "家人各自用手机记录，DropWise 会合计成全家的用水量。",
   "share.join": "参加象限挑战 — 把我家每人每日用水量分享到所在象限的排名（不显示姓名、地址或社区）",
   "hh.shareLabel": "把我家计入象限排名（每户只计一次，只显示平均值）",
@@ -762,7 +705,7 @@ Object.assign(window.DW_I18N.zh, {
 });
 Object.assign(window.DW_I18N.hi, {
   "today.fine": "बटन और शावर टाइमर <strong>अनुमान</strong> देते हैं (कैलगरी शहर के आँकड़े)। पानी का मीटर <strong>मापा गया</strong> कुल देता है। अनुमान मीटर के कुल में नहीं जोड़े जाते — मीटर में सब पहले से शामिल है।",
-  "guide.s6": "<strong>“रीडिंग सेव करें” दबाएँ।</strong> समय अपने-आप भरता है — पहले पढ़ा हो तो बदल दें। या 📷 से फ़ोटो लेकर संख्या भरें, फिर जाँचें।",
+  "guide.s6": "<strong>“रीडिंग सेव करें” दबाएँ।</strong> समय अपने-आप भरता है — पहले पढ़ा हो तो बदल दें।",
   "hh.title": "हमारा घर", "hh.sub": "घर के सभी लोग अपने फ़ोन से दर्ज करें — DropWise पूरे घर का जोड़ बनाता है।",
   "share.join": "क्वाड्रेंट चैलेंज में शामिल हों — मेरे घर का प्रति व्यक्ति दैनिक उपयोग मेरे क्वाड्रेंट की रैंकिंग में साझा करें (नाम, पता या मोहल्ला नहीं दिखेगा)",
   "hh.shareLabel": "हमारे घर को क्वाड्रेंट रैंकिंग में गिनें (हर घर एक बार — केवल औसत दिखते हैं)",
@@ -820,7 +763,7 @@ Object.assign(window.DW_I18N.hi, {
 });
 Object.assign(window.DW_I18N.ar, {
   "today.fine": "الأزرار ومؤقت الاستحمام تعطي <strong>تقديرات</strong> (بأرقام مدينة كالجاري). عداد المياه يعطي الإجمالي <strong>المقاس</strong>. لا تُضاف التقديرات فوق العداد — فالعداد يشمل كل شيء.",
-  "guide.s6": "<strong>اضغط «حفظ القراءة».</strong> يُملأ الوقت تلقائيًا — غيّره إن قرأت العداد قبل ذلك. أو اضغط 📷 لملء الرقم من صورة، ثم تحقق منه.",
+  "guide.s6": "<strong>اضغط «حفظ القراءة».</strong> يُملأ الوقت تلقائيًا — غيّره إن قرأت العداد قبل ذلك.",
   "hh.title": "منزلنا", "hh.sub": "يسجّل كل فرد في المنزل من هاتفه — ويجمع DropWise الاستهلاك للمنزل كله.",
   "share.join": "انضم إلى تحدي الأرباع — شارك استهلاك منزلي اليومي لكل شخص في ترتيب الربع (لا يظهر الاسم أو العنوان أو الحي)",
   "hh.shareLabel": "احتسب منزلنا في ترتيب الأرباع (مرة واحدة لكل منزل — تظهر المتوسطات فقط)",
@@ -1041,3 +984,51 @@ Object.assign(window.DW_I18N.ko, {"facts.title": "🌍 숫자로 보는 물과 �
 
 Object.assign(window.DW_I18N.en, {"hh.personalSync": "Your records are saved to your account — log in on any device to see them. Create or join a household to share them with family."});
 Object.assign(window.DW_I18N.ko, {"hh.personalSync": "내 기록은 계정에 저장돼요 — 어느 기기에서든 로그인하면 볼 수 있어요. 가족과 함께 보려면 우리 집을 만들거나 참여하세요."});
+
+/* ---- Update: elapsed-time usage; meter resets and duplicates ---- */
+// New strings are English only for now — other languages fall back to English until translated.
+Object.assign(window.DW_I18N.en, {
+  "meter.average": "Average: ≈ {n} per day ({p} per person) over the last {d}.",
+  "meter.tooShort": "under 12 h",
+  "meter.person": "person",
+  "meter.resetRow": "↺ meter reset — new start",
+  "meter.duplicate": "This reading ({r}) is already saved.",
+  "meter.sameTime": "There's already a different reading ({r}) at this time. Please check the time.",
+  "meter.resetBtn": "My meter was replaced or reset",
+  "meter.resetConfirm": "Save this as the first reading of a new or reset meter? The drop from your previous reading won't count as water use.",
+  "meter.savedReset": "Saved as a new meter start. Usage will be measured from this reading.",
+  "meter.unitChanged": "⚠️ Your previous reading was in {u}. Meters don't usually change units.",
+  "meter.saveAnyway": "Save anyway?"
+});
+
+/* ---- DropBot notes (AI answer / built-in fallback) ---- */
+Object.assign(window.DW_I18N.en, {
+  "bot.noteAI": "AI answer · general guidance, not official City advice",
+  "bot.noteOffline": "Built-in answer (AI not available right now)",
+  "bot.noteBusy": "Built-in answer — DropBot's AI is busy, please try again in a minute",
+  "bot.noteBlocked": "Built-in answer — please ask about water use, restrictions or this website"
+});
+Object.assign(window.DW_I18N.ko, {
+  "bot.noteAI": "AI 답변 · 일반 안내이며 시의 공식 안내가 아니에요",
+  "bot.noteOffline": "기본 답변 (지금은 AI를 사용할 수 없어요)",
+  "bot.noteBusy": "기본 답변 — DropBot AI가 지금 바빠요. 1분 후에 다시 시도해 주세요",
+  "bot.noteBlocked": "기본 답변 — 물 사용, 제한 조치, 이 웹사이트에 대해 물어봐 주세요"
+});
+Object.assign(window.DW_I18N.zh, {
+  "bot.noteAI": "AI 回答 · 一般性建议，并非市政府官方意见",
+  "bot.noteOffline": "内置回答（AI 暂时不可用）",
+  "bot.noteBusy": "内置回答 — DropBot 的 AI 正忙，请一分钟后再试",
+  "bot.noteBlocked": "内置回答 — 请询问用水、限水规定或本网站相关的问题"
+});
+Object.assign(window.DW_I18N.hi, {
+  "bot.noteAI": "AI उत्तर · सामान्य मार्गदर्शन, शहर की आधिकारिक सलाह नहीं",
+  "bot.noteOffline": "अंतर्निहित उत्तर (AI अभी उपलब्ध नहीं है)",
+  "bot.noteBusy": "अंतर्निहित उत्तर — DropBot का AI अभी व्यस्त है, कृपया एक मिनट बाद फिर कोशिश करें",
+  "bot.noteBlocked": "अंतर्निहित उत्तर — कृपया पानी के उपयोग, प्रतिबंधों या इस वेबसाइट के बारे में पूछें"
+});
+Object.assign(window.DW_I18N.ar, {
+  "bot.noteAI": "إجابة بالذكاء الاصطناعي · إرشاد عام وليست نصيحة رسمية من المدينة",
+  "bot.noteOffline": "إجابة مدمجة (الذكاء الاصطناعي غير متاح الآن)",
+  "bot.noteBusy": "إجابة مدمجة — الذكاء الاصطناعي في DropBot مشغول الآن، يرجى المحاولة بعد دقيقة",
+  "bot.noteBlocked": "إجابة مدمجة — يرجى السؤال عن استخدام المياه أو القيود أو هذا الموقع"
+});
