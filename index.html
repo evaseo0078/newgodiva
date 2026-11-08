@@ -305,6 +305,30 @@
           <p class="fineprint" data-i18n="feel.fine">Your answer is not saved or shared — it only changes the message on this screen.</p>
         </article>
       </div>
+      <article class="card facts-card" aria-labelledby="factsTitle">
+        <h3 class="card-title" id="factsTitle" data-i18n="facts.title">🌍 Water &amp; health, by the numbers</h3>
+        <p class="muted" data-i18n="facts.sub">Live public data — why Calgary's safe tap water is worth protecting.</p>
+        <div id="factStats" class="fact-stats" aria-live="polite"><p class="muted">Loading WHO, UN and Statistics Canada data…</p></div>
+        <div class="grid-2 facts-grid">
+          <div>
+            <h4 class="mini-title" data-i18n="facts.support">📞 Find support near you</h4>
+            <div class="svc-filters" role="group" aria-label="Filter supports">
+              <button type="button" class="chip" data-svc="all" aria-pressed="true">All</button>
+              <button type="button" class="chip" data-svc="health">Health</button>
+              <button type="button" class="chip" data-svc="support">Emotional support</button>
+              <button type="button" class="chip" data-svc="community">Community</button>
+              <button type="button" class="chip" data-svc="water">Water &amp; City</button>
+            </div>
+            <ul id="svcList" class="svc-list"></ul>
+            <p class="fineprint" data-i18n="facts.hsds">Directory stored in the Open Referral (HSDS) format, so it can be shared with 211 and other service finders.</p>
+          </div>
+          <div>
+            <h4 class="mini-title" data-i18n="facts.gov">📂 From Government of Canada open data</h4>
+            <ul id="govDatasets" class="gov-list"><li class="muted">Loading…</li></ul>
+          </div>
+        </div>
+        <p class="fineprint" id="factsSources">Sources: WHO Global Health Observatory API · UN SDG API (Goal 6.1.1) · Statistics Canada WDS · Open Government Portal (CKAN API).</p>
+      </article>
     </section>
 
     <!-- Stage 4 at a glance -->
@@ -409,11 +433,14 @@
             <div class="row-actions">
               <a id="rankJoin" class="btn-discord" href="#" target="_blank" rel="noopener" hidden>See #water-challenge on Discord</a>
               <button id="rankRefresh" class="link-btn" type="button" data-i18n="rank.refresh">Refresh</button>
+              <button id="rankSample" class="glass-btn" type="button">Show sample week</button>
+              <button id="rankPlay" class="btn-primary" type="button" hidden>▶ Simulate the week</button>
+              <span id="rankDay" class="rank-day" aria-live="polite"></span>
             </div>
           </div>
         </div>
         <p class="fineprint" data-i18n="rank.how">How it's calculated: households that join the challenge share their daily litres per person from their own water-meter readings. Each quadrant's score is the average of this week's reports; the change compares with last week. Discord members can also join by typing <code>NW 165</code> (quadrant + litres per person) in #water-challenge.</p>
-        <p class="fineprint">Map tiles © OpenStreetMap contributors © CARTO, via Leaflet. Community boundaries: City of Calgary Open Data — Community District Boundaries. Quadrants are assigned from each community's location (approximate near the boundaries). Click the map to enable scroll-zoom.</p>
+        <p class="fineprint">Map: Google Maps when a key is set, otherwise © OpenStreetMap contributors via Leaflet. Community boundaries: City of Calgary Open Data — Community District Boundaries. Quadrants are assigned from each community's location (approximate near the boundaries). Click the map to enable scroll-zoom.</p>
       </article>
     </section>
 

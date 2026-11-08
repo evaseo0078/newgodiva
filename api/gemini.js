@@ -1,11 +1,13 @@
 import { GoogleGenAI } from '@google/genai';
 
-// .env.local에 넣어둔 GEMINI_API_KEY를 자동으로 인식합니다.
-const ai = new GoogleGenAI();
+// .env.local / Vercel 환경변수의 GEMINI_API_KEY를 사용합니다.
+// 처음 호출될 때 만들어서, 키가 없어도 배포 자체는 실패하지 않게 했어요.
+let ai = null;
+const client = () => (ai ||= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }));
 
 export async function analyzeWaterMeter(imageBase64, userPrompt) {
   try {
-    const response = await ai.models.generateContent({
+    const response = await client().models.generateContent({
       model: 'gemini-2.5-flash', // 빠르고 이미지 처리에 뛰어난 최신 모델
       contents: [
         {
@@ -24,5 +26,18 @@ export async function analyzeWaterMeter(imageBase64, userPrompt) {
   } catch (error) {
     console.error("Gemini API 호출 중 오류 발생:", error);
     throw error;
+  }
+}
+
+// Vercel 서버 함수: POST /api/gemini  { image: "<base64>", prompt?: "..." } → { text }
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (!process.env.GEMINI_API_KEY) return res.status(503).json({ error: "GEMINI_API_KEY is not set" });
+  try {
+    const { image, prompt } = req.body || {};
+    if (!image) return res.status(400).json({ error: "image (base64) is required" });
+    return res.status(200).json({ text: await analyzeWaterMeter(image, prompt) });
+  } catch (e) {
+    return res.status(502).json({ error: "Gemini request failed" });
   }
 }

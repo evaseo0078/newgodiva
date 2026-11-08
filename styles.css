@@ -398,7 +398,7 @@ body { font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neu
 @media (max-width: 860px) { .map-rank { grid-template-columns: 1fr; } }
 .map-wrap { margin: 0; }
 .city-map { background: #eef4fb; border-radius: 16px; padding: 10px; border: 1px solid var(--line); }
-.city-map svg { width: 100%; height: auto; display: block; }
+.city-map:not(.leaflet-on):not(.gmap-on) > svg { width: 100%; height: auto; display: block; }
 .city-map .communities path { stroke: #fff; stroke-width: 0.6; transition: opacity 0.2s; }
 .city-map .communities path:hover { opacity: 0.75; }
 .city-map .mine-comm { fill: none; stroke: #111; stroke-width: 2.5; }
@@ -744,3 +744,25 @@ html, body { overflow-x: clip; }
 .neighbour-card { margin-top: 18px; }
 .nb-steps { list-style: none; padding: 0; display: grid; gap: 6px; }
 @media (max-width: 640px) { .together-stats { grid-template-columns: 1fr; } }
+
+.city-map.gmap-on { padding: 0; height: 460px; overflow: hidden; }
+@media (max-width: 600px) { .city-map.gmap-on { height: 360px; } }
+.gm-label { background: #fff; border: 2px solid var(--c, #607d8b); border-radius: 999px; padding: 3px 10px; font: 700 13px system-ui, sans-serif; color: #102a43; box-shadow: 0 2px 6px rgba(0,0,0,.2); white-space: nowrap; }
+
+.rank-day { font-weight: 700; color: var(--primary); font-size: .9rem; }
+.row-actions { flex-wrap: wrap; align-items: center; }
+
+/* water & health facts */
+.facts-card { margin-top: 18px; }
+.fact-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 10px 0 16px; }
+.fact { background: rgba(255,255,255,.6); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: grid; gap: 2px; }
+.fact b { font-size: 1.6rem; color: var(--primary); }
+.fact span { font-size: .88rem; }
+.fact small { font-size: .72rem; color: var(--muted); }
+.svc-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.chip { border: 1px solid var(--line); background: rgba(255,255,255,.7); border-radius: 999px; padding: 5px 12px; font-weight: 600; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--primary); color: #fff; border-color: var(--primary); }
+.svc-list, .gov-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.svc-list li { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.55); border: 1px solid var(--line); }
+.svc-call { white-space: nowrap; font-weight: 700; color: var(--primary); text-decoration: none; }
+.gov-list li { display: grid; padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,.55); border: 1px solid var(--line); }

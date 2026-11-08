@@ -14,6 +14,15 @@ Dynamic restriction verification and local stage previews: see [RESTRICTIONS.md]
 | **Social connection** | *Our household* (shared records with family), *Together this week* (kudos, days within goal), *Quadrant challenge*, *Discord community*, *Check on a neighbour* (large-print card in 5 languages + text message). |
 | **Well-being** | *How are you feeling?* check-in with calm, supportive replies (nothing saved), 24/7 help lines (Distress Centre Calgary 403-266-HELP, 211 Alberta, 311), positive-only feedback, plain-language Stage 4 rules. |
 
+## Hackathon APIs used for health
+- **WHO Global Health Observatory API** (`/api/health`) — % of Canadians with safely managed drinking water.
+- **UN SDG API** (`/api/health`) — Goal 6.1.1, share of the world's population with safe drinking water.
+- **Open Data Canada (CKAN API)** (`/api/health`) — latest Government of Canada datasets on drinking water.
+- **Statistics Canada WDS** (`/api/statcan`) — Alberta home water use per person.
+- **Open Referral (HSDS)** — local support directory in `data/services.json` (Distress Centre, 988, Health Link 811, 211, 311).
+- **Discord API** — community feed, tips and quadrant challenge.
+No keys are needed for the first five. Results are cached for a day; if a source is down, the card says so and the rest still works.
+
 ## Features
 | Section | What it does | Data |
 |---|---|---|

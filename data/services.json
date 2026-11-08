@@ -1,0 +1,27 @@
+{
+  "_about": "Local support directory for DropWise YYC, written in the Open Referral Human Services Data Specification (HSDS) shape: organizations → services → phones. Check numbers before launch.",
+  "organizations": [
+    { "id": "dcc", "name": "Distress Centre Calgary", "url": "https://distresscentre.com" },
+    { "id": "211ab", "name": "211 Alberta", "url": "https://ab.211.ca" },
+    { "id": "ahs", "name": "Alberta Health Services", "url": "https://www.albertahealthservices.ca" },
+    { "id": "yyc", "name": "City of Calgary", "url": "https://www.calgary.ca" },
+    { "id": "988", "name": "9-8-8 Suicide Crisis Helpline", "url": "https://988.ca" }
+  ],
+  "services": [
+    { "id": "dcc-crisis", "organization_id": "dcc", "name": "24-hour crisis support",
+      "description": "Free, confidential emotional support by phone, text or chat for anyone feeling overwhelmed.",
+      "category": "support", "schedule": "24/7", "phones": [{ "number": "403-266-4357", "description": "403-266-HELP — call or text" }] },
+    { "id": "988", "organization_id": "988", "name": "Suicide Crisis Helpline",
+      "description": "Canada-wide crisis line. Call or text.", "category": "support", "schedule": "24/7",
+      "phones": [{ "number": "988", "description": "Call or text 9-8-8" }] },
+    { "id": "healthlink", "organization_id": "ahs", "name": "Health Link (nurse advice)",
+      "description": "Talk to a registered nurse about health questions, e.g. dehydration or hygiene worries.",
+      "category": "health", "schedule": "24/7", "phones": [{ "number": "811", "description": "Call 811" }] },
+    { "id": "211", "organization_id": "211ab", "name": "Community & social services finder",
+      "description": "Connects you to food, housing, seniors' and newcomer services across Alberta.",
+      "category": "community", "schedule": "24/7", "phones": [{ "number": "211", "description": "Call or text 2-1-1" }] },
+    { "id": "311", "organization_id": "yyc", "name": "City services & water restrictions",
+      "description": "Report water leaks or main breaks and ask about Stage 4 rules.",
+      "category": "water", "schedule": "24/7", "phones": [{ "number": "311", "description": "Call 311 (403-268-2489 from outside Calgary)" }] }
+  ]
+}
