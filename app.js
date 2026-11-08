@@ -831,10 +831,11 @@
     if (!lmap) {
       box.classList.add("leaflet-on");
       lmap = L.map(box, { center: [51.045, -114.07], zoom: 10, minZoom: 9, maxZoom: 16, scrollWheelZoom: false });
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-        subdomains: "abcd", maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(lmap);
+      lmap.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
       lmap.on("click", () => lmap.scrollWheelZoom.enable());
       lmap.on("mouseout", () => lmap.scrollWheelZoom.disable());
     }
@@ -871,11 +872,82 @@
     setTimeout(() => lmap.invalidateSize(), 0);
   }
 
+  /* Google Maps version of the same map (used when googleMapsApiKey is set). */
+  let gmap = null, gOverlays = [], gInfo = null, gLoading = null;
+  function loadGoogleMaps() {
+    if (window.google?.maps?.importLibrary) return Promise.resolve();
+    if (gLoading) return gLoading;
+    gLoading = new Promise((resolve, reject) => {
+      window.__dwGmapsReady = resolve;
+      const sc = document.createElement("script");
+      sc.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(C.googleMapsApiKey)}&v=weekly&loading=async&callback=__dwGmapsReady`;
+      sc.async = true; sc.onerror = () => reject(new Error("Google Maps failed to load"));
+      document.head.appendChild(sc);
+    });
+    return gLoading;
+  }
+  async function renderGoogle(box, col, byQ, lbl) {
+    await loadGoogleMaps();
+    const { Map, Polygon, InfoWindow, OverlayView } = await google.maps.importLibrary("maps");
+    if (!gmap) {
+      box.classList.add("gmap-on"); box.innerHTML = "";
+      gmap = new Map(box, { center: { lat: 51.045, lng: -114.07 }, zoom: 10, minZoom: 9, maxZoom: 16,
+        gestureHandling: "cooperative", streetViewControl: false, mapTypeControl: false, fullscreenControl: true });
+      gInfo = new InfoWindow();
+    }
+    gOverlays.forEach((o) => o.setMap(null)); gOverlays = [];
+    const myComm = (S.settings?.community || "").toUpperCase(), myQ = quadOf(S.settings?.community);
+    const tipFor = (name, q) => `<strong>${esc(name)}</strong><br>${Q.names[q]} (${q})${byQ[q]?.lpd != null ? `<br>${byQ[q].lpd} L per person/day` : ""}`;
+    const cent = { NW: [0, 0, 0], NE: [0, 0, 0], SW: [0, 0, 0], SE: [0, 0, 0] };
+    const bounds = new google.maps.LatLngBounds();
+    const add = (paths, q, name, mine) => {
+      const poly = new Polygon({ paths, map: gmap, fillColor: col[q] || "#90a4ae", fillOpacity: OVERLAY_OPACITY,
+        strokeColor: mine ? "#111" : (col[q] || "#90a4ae"), strokeOpacity: mine ? 1 : 0.7, strokeWeight: mine ? 3 : 0.8, zIndex: mine ? 2 : 1 });
+      poly.addListener("click", (e) => { gInfo.setContent(tipFor(name, q)); gInfo.setPosition(e.latLng); gInfo.open({ map: gmap }); });
+      gOverlays.push(poly);
+    };
+    if (S.map) {
+      for (const f of S.map.features) {
+        const paths = f.rings.map((r) => r.map(([x, y]) => ({ lat: y, lng: x })));
+        const mine = f.name.toUpperCase() === myComm;
+        add(paths, f.q, titleCase(f.name) + (mine ? " (you)" : ""), mine);
+        f.rings[0].forEach(([x, y]) => { cent[f.q][0] += y; cent[f.q][1] += x; cent[f.q][2]++; bounds.extend({ lat: y, lng: x }); });
+      }
+      $("#mapNote").textContent = `${S.map.features.length} communities · tap an area for details`;
+    } else {
+      const polys = quadrantPolygons();
+      for (const q of Object.keys(polys)) {
+        add(polys[q].map(([y, x]) => ({ lat: y, lng: x })), q, Q.names[q], q === myQ);
+        polys[q].forEach(([y, x]) => { cent[q][0] += y; cent[q][1] += x; cent[q][2]++; bounds.extend({ lat: y, lng: x }); });
+      }
+      $("#mapNote").textContent = "Approximate quadrant areas";
+    }
+    // Quadrant labels (HTML overlays, no extra library needed)
+    class Label extends OverlayView {
+      constructor(pos, html) { super(); this.pos = pos; this.div = document.createElement("div"); this.div.style.position = "absolute"; this.div.innerHTML = html; }
+      onAdd() { this.getPanes().floatPane.appendChild(this.div); }
+      draw() { const p = this.getProjection().fromLatLngToDivPixel(this.pos); this.div.style.left = p.x + "px"; this.div.style.top = p.y + "px"; this.div.style.transform = "translate(-50%,-50%)"; }
+      onRemove() { this.div.remove(); }
+    }
+    for (const q of Object.keys(cent)) {
+      const [sy, sx, n] = cent[q]; if (!n) continue;
+      const l = new Label(new google.maps.LatLng(sy / n, sx / n), `<span class="gm-label" style="--c:${col[q] || "#607d8b"}">${esc(lbl(q))}</span>`);
+      l.setMap(gmap); gOverlays.push(l);
+    }
+    if (!bounds.isEmpty() && !gmap._dwFitted) { gmap.fitBounds(bounds, 10); gmap._dwFitted = true; }
+  }
+
+  // Bad or restricted key: Google calls this — switch to the free map.
+  window.gm_authFailure = () => { console.warn("Google Maps key rejected — using OpenStreetMap"); S.gmapsFailed = true; gmap = null; const b = $("#cityMap"); if (b) { b.classList.remove("gmap-on"); b.innerHTML = ""; } renderMap(); };
   function renderMap() {
     const box = $("#cityMap"); if (!box) return;
+    const col = quadColors(), byQ = Object.fromEntries((S.ranking?.quadrants || []).map((r) => [r.q, r]));
+    const lbl = (q) => `${q}${byQ[q]?.lpd != null ? " · " + byQ[q].lpd + " L" : ""}`;
+    if (C.googleMapsApiKey && !S.gmapsFailed) {
+      renderGoogle(box, col, byQ, lbl).catch((e) => { console.warn("Google Maps failed, using OpenStreetMap", e); window.gm_authFailure(); });
+      return;
+    }
     if (window.L && typeof L.map === "function") {
-      const col = quadColors(), byQ = Object.fromEntries((S.ranking?.quadrants || []).map((r) => [r.q, r]));
-      const lbl = (q) => `${q}${byQ[q]?.lpd != null ? " · " + byQ[q].lpd + " L" : ""}`;
       try { return renderLeaflet(box, col, byQ, lbl); } catch (e) { console.warn("Leaflet map failed, using SVG map", e); }
     }
     renderSvgMap(box);

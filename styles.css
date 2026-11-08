@@ -398,7 +398,7 @@ body { font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neu
 @media (max-width: 860px) { .map-rank { grid-template-columns: 1fr; } }
 .map-wrap { margin: 0; }
 .city-map { background: #eef4fb; border-radius: 16px; padding: 10px; border: 1px solid var(--line); }
-.city-map svg { width: 100%; height: auto; display: block; }
+.city-map:not(.leaflet-on):not(.gmap-on) > svg { width: 100%; height: auto; display: block; }
 .city-map .communities path { stroke: #fff; stroke-width: 0.6; transition: opacity 0.2s; }
 .city-map .communities path:hover { opacity: 0.75; }
 .city-map .mine-comm { fill: none; stroke: #111; stroke-width: 2.5; }
@@ -730,3 +730,7 @@ html, body { overflow-x: clip; }
 .neighbour-card { margin-top: 18px; }
 .nb-steps { list-style: none; padding: 0; display: grid; gap: 6px; }
 @media (max-width: 640px) { .together-stats { grid-template-columns: 1fr; } }
+
+.city-map.gmap-on { padding: 0; height: 460px; overflow: hidden; }
+@media (max-width: 600px) { .city-map.gmap-on { height: 360px; } }
+.gm-label { background: #fff; border: 2px solid var(--c, #607d8b); border-radius: 999px; padding: 3px 10px; font: 700 13px system-ui, sans-serif; color: #102a43; box-shadow: 0 2px 6px rgba(0,0,0,.2); white-space: nowrap; }
