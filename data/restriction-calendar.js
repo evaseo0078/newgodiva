@@ -1,5 +1,7 @@
+import calgaryTime from "./calgary-time.js";
+
 const calendar = (() => {
-  const timezone = "America/Edmonton";
+  const timezone = calgaryTime.timezone;
   const reviewedAt = "2026-11-08T05:12:50.000Z";
   const records = [
     { id: "2024-july17-stage3", stage: 3, start: "2024-07-17", end: null, status: "confirmed", kind: "observation",
@@ -23,11 +25,6 @@ const calendar = (() => {
       source: "https://newsroom.calgary.ca/water-restrictions-lifted-as-bearspaw-south-feeder-main-returns-to-service/",
       startsAt: "2026-04-02T09:00:00-06:00", verifiedAt: reviewedAt,
       detail: "Restrictions lifted April 2 at 9 a.m. This record does not establish the status of later dates." },
-    { id: "2026-november-stage4", stage: 4, start: "2026-11-04", end: null, status: "confirmed", kind: "declaration",
-      source: "https://newsroom.calgary.ca/water-restrictions-take-effect-nov-4-as-bearspaw-south-feeder-main-enters-final-steps-of-construction/",
-      verificationSource: "https://www.calgary.ca/planning/water/bearspaw-feeder-main/water-restrictions.html",
-      verifiedThrough: "2026-11-07", verifiedAt: reviewedAt, expectedDuration: "Approximately four weeks; no official end date confirmed.",
-      detail: "Official start: November 4, 2026. The expected construction duration is an estimate, not a restriction end date." }
   ];
   function validDate(value) {
     if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -35,11 +32,7 @@ const calendar = (() => {
     return Number.isFinite(+date) && date.toISOString().slice(0, 10) === value;
   }
   function dayKey(value = new Date()) {
-    const date = new Date(value);
-    if (!Number.isFinite(+date)) return null;
-    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
-    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
-    return `${values.year}-${values.month}-${values.day}`;
+    return calgaryTime.dayKey(value);
   }
   function officialSource(value) {
     try { const url = new URL(value); return url.protocol === "https:" && ["www.calgary.ca", "calgary.ca", "newsroom.calgary.ca"].includes(url.hostname); } catch { return false; }
@@ -49,6 +42,7 @@ const calendar = (() => {
       validDate(record.start) && (record.end === null || validDate(record.end) && record.end >= record.start) &&
       ["confirmed", "scheduled", "estimated", "unknown"].includes(record.status) && officialSource(record.source) &&
       (!record.endSource || officialSource(record.endSource)) && (record.status !== "estimated" || record.end === null) &&
+      (!record.declarationSource || officialSource(record.declarationSource)) &&
       Number.isFinite(Date.parse(record.verifiedAt)) &&
       (!record.verifiedThrough || validDate(record.verifiedThrough) && record.verifiedThrough >= record.start && record.verifiedThrough <= dayKey(record.verifiedAt)) &&
       (!record.estimatedThrough || validDate(record.estimatedThrough) && record.estimatedThrough >= record.start) &&
@@ -56,10 +50,12 @@ const calendar = (() => {
   }
   function mergeRecords(...collections) {
     const merged = new Map();
-    for (const record of collections.flat()) {
+    for (const input of collections.flat()) {
+      const correctedDay = input?.kind === "observation" && input.timezoneVersion !== calgaryTime.version && input.id === `observed:${input.start}:${input.stage}` ? dayKey(input.verifiedAt) : null;
+      const record = correctedDay && correctedDay !== input.start ? { ...input, start: correctedDay, id: `observed:${correctedDay}:${input.stage}`, timezoneVersion: calgaryTime.version } : input;
       if (!validRecord(record)) continue;
       const previous = merged.get(record.id);
-      if (!previous || Date.parse(record.verifiedAt) > Date.parse(previous.verifiedAt)) merged.set(record.id, record);
+      if (!previous || Date.parse(record.verifiedAt) > Date.parse(previous.verifiedAt) || record.verifiedAt === previous.verifiedAt && record.timezoneVersion === calgaryTime.version && previous.timezoneVersion !== calgaryTime.version) merged.set(record.id, record);
     }
     return [...merged.values()].sort((left, right) => left.start.localeCompare(right.start) || left.id.localeCompare(right.id));
   }
@@ -67,7 +63,7 @@ const calendar = (() => {
     if (!snapshot || snapshot.stale || !Number.isInteger(snapshot.stage) || !snapshot.verifiedAt) return null;
     const date = dayKey(snapshot.verifiedAt);
     const record = { id: `observed:${date}:${snapshot.stage}`, stage: snapshot.stage, start: date, end: null,
-      kind: "observation", status: "confirmed", source: snapshot.sources?.[0], verifiedAt: snapshot.verifiedAt,
+      kind: "observation", status: "confirmed", timezoneVersion: calgaryTime.version, source: snapshot.sources?.[0], verifiedAt: snapshot.verifiedAt,
       detail: "Verified on this date only. This observation does not establish an effective start, end or uninterrupted period." };
     return validRecord(record) ? record : null;
   }
@@ -90,7 +86,7 @@ const calendar = (() => {
     if (selected.some(record => record.status === "unknown")) return { ...unavailable, records: selected };
     if (stages.size > 1) {
       const ordered = [...selected].sort((left, right) => Date.parse(left.startsAt || left.start) - Date.parse(right.startsAt || right.start));
-      const transition = ordered.every((record, index) => !index || ordered[index - 1].endsAt && record.startsAt && Date.parse(ordered[index - 1].endsAt) <= Date.parse(record.startsAt));
+      const transition = ordered.every((record, index) => !index || ordered[index - 1].endedBy === record.id || ordered[index - 1].endsAt && record.startsAt && Date.parse(ordered[index - 1].endsAt) <= Date.parse(record.startsAt));
       return { ...unavailable, records: selected, status: transition ? "transition" : "conflict",
         message: transition ? "Stage transition on this date — see effective times below" : "Conflicting or incomplete stage information — status uncertain" };
     }

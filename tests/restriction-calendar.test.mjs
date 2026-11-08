@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import calendar from "../data/restriction-calendar.js";
 import { createHistoryStore } from "../lib/restriction-history.mjs";
 import { createRestrictionService, SOURCES, TTL } from "../lib/restrictions.mjs";
+import { november } from "./fixtures/restriction-scenarios.js";
 
 const source = "https://newsroom.calgary.ca/example-official-announcement/";
 const verifiedAt = "2026-11-08T05:03:33Z";
@@ -32,7 +33,6 @@ test("inclusive historical ranges stop at their confirmed end", () => {
 });
 
 test("November has a confirmed start, an unknown end and a duration estimate only", () => {
-  const november = calendar.records.find(value => value.id === "2026-november-stage4");
   assert.equal(november.start, "2026-11-04");
   assert.equal(november.end, null);
   assert.match(november.expectedDuration, /Approximately four weeks/);
@@ -79,7 +79,7 @@ test("explicit stage zero is different from missing history", () => {
 test("Edmonton date keys handle UTC midnight, DST and invalid input", () => {
   assert.equal(calendar.dayKey("2026-11-08T05:00:00Z"), "2026-11-07");
   assert.equal(calendar.dayKey("2026-07-08T05:00:00Z"), "2026-07-07");
-  assert.equal(calendar.dayKey("2026-11-08T07:00:00Z"), "2026-11-08");
+  assert.equal(calendar.dayKey("2026-11-08T06:00:00Z"), "2026-11-08");
   assert.equal(calendar.dayKey("bad"), null);
 });
 

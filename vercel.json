@@ -1,7 +1,7 @@
 {
   "functions": {
-    "api/restrictions.js": { "includeFiles": "data/**", "maxDuration": 30 },
-    "api/chat.js": { "includeFiles": "data/**", "maxDuration": 30 },
+    "api/restrictions.js": { "includeFiles": "{data/**,node_modules/pdfjs-dist/legacy/build/*.mjs}", "maxDuration": 60 },
+    "api/chat.js": { "includeFiles": "{data/**,node_modules/pdfjs-dist/legacy/build/*.mjs}", "maxDuration": 60 },
     "api/meter-read.js": { "maxDuration": 20 }
   }
 }

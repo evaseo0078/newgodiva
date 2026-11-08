@@ -352,7 +352,7 @@
     <section class="section" aria-labelledby="calTitle">
       <div class="section-head">
         <h2 id="calTitle" data-i18n="cal.title">Restriction &amp; construction calendar</h2>
-        <p class="muted" data-i18n="cal.sub">Official City of Calgary dates. Dots show whether your household met its daily goal.</p>
+        <p class="muted">Current restriction orders and recorded history. Choose a separate view for household goals or construction.</p>
       </div>
       <article class="card">
         <div class="cal-head">
@@ -366,16 +366,16 @@
             <button id="calNext" class="icon-btn" aria-label="Next month">›</button>
           </div>
         </div>
-        <p class="legend-row">
-          <span class="ev-key restriction" data-i18n="cal.restr">Water restrictions</span>
-          <span class="ev-key construction" data-i18n="cal.constr">Construction</span>
-          <span class="ev-key info" data-i18n="cal.info">No restrictions / info</span>
-          <span class="dot-key"><i class="dot ok"></i> Goal met</span>
-          <span class="dot-key"><i class="dot over"></i> Over goal</span>
-        </p>
+        <div id="currentRestrictionSummary" class="cal-current-summary" role="region" aria-label="Current City restriction status"></div>
+        <div id="calendarViews" class="calendar-views" role="group" aria-label="Calendar view">
+          <button type="button" data-calendar-view="restrictions" aria-pressed="true">Water Restrictions</button>
+          <button type="button" data-calendar-view="goals" aria-pressed="false">Household Goals</button>
+          <button type="button" data-calendar-view="construction" aria-pressed="false">Construction</button>
+        </div>
+        <div id="calendarOutlook" class="cal-period-overview"></div>
+        <p id="calendarLegend" class="legend-row" aria-label="Calendar key"></p>
         <div id="calendar" class="calendar" role="grid" aria-labelledby="calMonth"></div>
         <p id="calendarCoverage" class="fineprint" role="status">Historical coverage is partial. Empty dates do not mean No Restrictions.</p>
-        <div id="calendarOutlook" class="fineprint"></div>
         <div id="calDetail" class="cal-detail" aria-live="polite"><p class="muted">Select a day to see what it means for you.</p></div>
       </article>
     </section>

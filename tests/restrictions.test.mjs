@@ -76,9 +76,9 @@ test("cache avoids repeated fetches and preserves the timestamp on verification 
   const now = new Date();
   const fetcher = async () => { requests++; return response("Stage 3 water restrictions are in effect."); };
   const first = await service({ now, fetcher });
-  assert.equal(requests, 2);
+  assert.equal(requests, 3);
   const cached = await service({ now: new Date(+now + 1000), fetcher });
-  assert.equal(requests, 2);
+  assert.equal(requests, 3);
   assert.equal(cached.verifiedAt, first.verifiedAt);
   const failure = await service({ now: new Date(+now + TTL + 1), fetcher: async () => { throw new Error("offline"); } });
   assert.equal(failure.stage, 3);
