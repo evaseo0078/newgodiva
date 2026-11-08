@@ -1033,36 +1033,73 @@
     } catch (e) { msg.textContent = "Couldn't share: " + e.message; }
   }
 
+  // Sample week for demos: shown when nobody has reported yet, or with ?demo=1 in the address.
+  const SAMPLE_WEEK = { // litres per person per day, Mon → Sun; ranks swap during the week
+    NW: [205, 198, 186, 178, 170, 166, 162], NE: [180, 184, 190, 192, 195, 189, 186],
+    SW: [190, 182, 176, 174, 172, 175, 178], SE: [170, 176, 183, 196, 205, 210, 208] };
+  const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  let liveRanking = null, playTimer = null;
+  const forceDemo = new URLSearchParams(location.search).has("demo");
+  function sampleFrame(d) {
+    const quadrants = Object.keys(SAMPLE_WEEK).map((q) => {
+      const lpd = SAMPLE_WEEK[q][d], first = SAMPLE_WEEK[q][0];
+      return { q, lpd, reports: 12 + d * 3 + q.charCodeAt(1) % 5, change: d ? Math.round(((lpd - first) / first) * 100) : null };
+    });
+    return { quadrants, totals: { reports: quadrants.reduce((a, r) => a + r.reports, 0), quadrants: 4 }, demo: true, sample: true, day: d };
+  }
+  function showSample(d = 6) { S.ranking = sampleFrame(d); renderRanking(); }
+  function stopPlay() { clearInterval(playTimer); playTimer = null; $("#rankPlay").textContent = t("rank.play"); }
+  $("#rankSample").addEventListener("click", () => {
+    stopPlay();
+    if (S.ranking?.sample && liveRanking) { S.ranking = liveRanking; renderRanking(); } else showSample(6);
+  });
+  $("#rankPlay").addEventListener("click", () => {
+    if (playTimer) return stopPlay();
+    let d = 0; showSample(d);
+    $("#rankPlay").textContent = t("rank.pause");
+    playTimer = setInterval(() => { d++; if (d > 6) return stopPlay(); showSample(d); }, 1300);
+  });
+  const hasLive = (R) => (R?.quadrants || []).some((r) => r.lpd != null);
+
   async function loadRanking() {
+    stopPlay();
+    await loadLiveRanking();
+    liveRanking = S.ranking;
+    if (forceDemo || !hasLive(liveRanking)) showSample(6); else renderRanking();
+  }
+  async function loadLiveRanking() {
     if (CLOUD.enabled) {
       try {
         const rows = await CLOUD.ranking();
         S.ranking = { quadrants: rows, totals: { reports: rows.reduce((a, r) => a + r.reports, 0), quadrants: rows.length }, demo: false, source: "db" };
-        return renderRanking();
+        return;
       } catch { /* fall back below */ }
     }
     try {
       const r = await fetch("/api/discord?view=ranking"); if (!r.ok) throw new Error(r.status);
       S.ranking = { ...(await r.json()), demo: false, source: "discord" };
     } catch {
-      S.ranking = { ...C.demoRanking, demo: true };
+      S.ranking = { quadrants: [], totals: { reports: 0 }, demo: false, source: "none" };
     }
-    renderRanking();
   }
   function renderRanking() {
     const R = S.ranking; if (!R) return;
     const banner = $("#rankBanner");
-    banner.hidden = !R.demo;
-    banner.textContent = "Demo data — connect the Discord bot (see README) to show the live quadrant ranking from #water-challenge.";
+    banner.hidden = !R.sample;
+    banner.textContent = hasLive(liveRanking) ? t("rank.sampleBanner") : t("rank.sampleEmpty");
+    $("#rankPlay").hidden = !R.sample;
+    if (!playTimer) $("#rankPlay").textContent = t("rank.play");
+    $("#rankSample").textContent = R.sample ? (hasLive(liveRanking) ? t("rank.showLive") : t("rank.showLiveEmpty")) : t("rank.showSample");
+    $("#rankDay").textContent = R.sample ? t("rank.dayOf", { d: DAY_NAMES[R.day], n: R.day + 1 }) : "";
     const ch = C.discord.channels.find((c) => c.name === "water-challenge");
     const href = C.discord.guildId && ch?.id ? `https://discord.com/channels/${C.discord.guildId}/${ch.id}` : C.discord.inviteUrl;
     const join = $("#rankJoin"); join.hidden = !href; if (href) join.href = href;
 
     const rows = quadRows(), col = quadColors(), myQ = quadOf(S.settings?.community);
     const myRank = rows.findIndex((r) => r.q === myQ);
-    const t = R.totals || {};
+    const tot = R.totals || {};
     $("#rankSummary").innerHTML = `
-      <div><b>${t.reports ?? 0}</b><span>${R.source === "db" ? "households ranked this week" : "household reports this week"}</span></div>
+      <div><b>${tot.reports ?? 0}</b><span>${R.source === "db" ? "households ranked this week" : "household reports this week"}</span></div>
       <div><b>${rows[0] ? rows[0].q : "—"}</b><span>saving the most water</span></div>
       <div><b>${rows.length ? Math.round(rows.reduce((s, r) => s + r.lpd * r.reports, 0) / Math.max(1, rows.reduce((s, r) => s + r.reports, 0))) + " L" : "—"}</b><span>city average per person/day</span></div>
       <div><b>${!R.demo && myRank >= 0 ? "#" + (myRank + 1) : myQ || "—"}</b><span>${!R.demo && myRank >= 0 ? "your quadrant's rank" : "your quadrant"}</span></div>`;
@@ -1070,7 +1107,7 @@
     $("#quadRank").innerHTML = rows.map((r, i) => {
       const me = !R.demo && r.q === myQ;
       const ch = r.change == null ? `<span class="muted">new</span>`
-        : `<span class="${r.change <= 0 ? "good" : "bad"}">${r.change <= 0 ? "▼" : "▲"} ${Math.abs(r.change)}% vs last week</span>`;
+        : `<span class="${r.change <= 0 ? "good" : "bad"}">${r.change <= 0 ? "▼" : "▲"} ${Math.abs(r.change)}% ${R.sample ? "vs Monday" : "vs last week"}</span>`;
       return `<li class="${me ? "me" : ""}" style="--c:${col[r.q]}">
         <span class="rank-no">${["🥇", "🥈", "🥉"][i] || i + 1}</span>
         <div class="q-body">

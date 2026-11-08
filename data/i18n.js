@@ -1018,3 +1018,12 @@ Object.assign(window.DW_I18N.ko, {"nb.cardNo": "야외에서 금지", "nb.cardYe
 Object.assign(window.DW_I18N.zh, {"nb.cardNo": "户外禁止", "nb.cardYes": "仍然允许"});
 Object.assign(window.DW_I18N.hi, {"nb.cardNo": "बाहर मना है", "nb.cardYes": "अब भी अनुमति है"});
 Object.assign(window.DW_I18N.ar, {"nb.cardNo": "ممنوع في الخارج", "nb.cardYes": "ما زال مسموحًا"});
+
+Object.assign(window.DW_I18N.en, {"rank.showSample": "Show sample week", "rank.showLive": "Show live data", "rank.showLiveEmpty": "Show live data (none yet)",
+ "rank.play": "▶ Simulate the week", "rank.pause": "⏸ Pause", "rank.dayOf": "Sample · {d} (day {n} of 7)",
+ "rank.sampleBanner": "Sample data for demonstration — not real households.",
+ "rank.sampleEmpty": "Sample data — no households have joined the challenge this week yet. Real results replace this as soon as homes share their meter readings."});
+Object.assign(window.DW_I18N.ko, {"rank.showSample": "샘플 주간 보기", "rank.showLive": "실제 데이터 보기", "rank.showLiveEmpty": "실제 데이터 보기 (아직 없음)",
+ "rank.play": "▶ 일주일 시뮬레이션", "rank.pause": "⏸ 일시정지", "rank.dayOf": "샘플 · {d} ({n}/7일)",
+ "rank.sampleBanner": "시연용 샘플 데이터예요 — 실제 가구 기록이 아니에요.",
+ "rank.sampleEmpty": "샘플 데이터예요 — 이번 주 챌린지에 참여한 가구가 아직 없어요. 가구들이 계량기 기록을 공유하면 실제 결과로 바뀌어요."});

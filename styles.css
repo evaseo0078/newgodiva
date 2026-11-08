@@ -734,3 +734,6 @@ html, body { overflow-x: clip; }
 .city-map.gmap-on { padding: 0; height: 460px; overflow: hidden; }
 @media (max-width: 600px) { .city-map.gmap-on { height: 360px; } }
 .gm-label { background: #fff; border: 2px solid var(--c, #607d8b); border-radius: 999px; padding: 3px 10px; font: 700 13px system-ui, sans-serif; color: #102a43; box-shadow: 0 2px 6px rgba(0,0,0,.2); white-space: nowrap; }
+
+.rank-day { font-weight: 700; color: var(--primary); font-size: .9rem; }
+.row-actions { flex-wrap: wrap; align-items: center; }
