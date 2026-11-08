@@ -1092,7 +1092,7 @@
     if (!playTimer) $("#rankPlay").textContent = t("rank.play");
     $("#rankSample").textContent = R.sample ? (hasLive(liveRanking) ? t("rank.showLive") : t("rank.showLiveEmpty")) : t("rank.showSample");
     $("#rankDay").textContent = R.sample ? t("rank.dayOf", { d: DAY_NAMES[R.day], n: R.day + 1 }) : "";
-    const ch = C.discord.channels.find((c) => c.name === "water-challenge");
+    const ch = C.discord.channels.find((c) => ["weekly-challenge", "water-challenge"].includes(c.name));
     const href = C.discord.guildId && ch?.id ? `https://discord.com/channels/${C.discord.guildId}/${ch.id}` : C.discord.inviteUrl;
     const join = $("#rankJoin"); join.hidden = !href; if (href) join.href = href;
 
