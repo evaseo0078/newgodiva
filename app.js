@@ -25,7 +25,7 @@ import MU from "./data/meter-usage.js";
   const readJSON = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
   const CLOUD = window.DW_CLOUD || { enabled: false };
   let SESSION = readJSON("dw_session");
-  // Online accounts (Supabase): the real session wins — this also catches the return from Google sign-in.
+  // Online accounts (Supabase): the real session wins — this also catches the return from an email confirmation link.
   if (CLOUD.enabled) {
     let s = null; try { s = await CLOUD.session(); } catch { /* offline */ }
     if (s) {
@@ -1684,7 +1684,6 @@ import MU from "./data/meter-usage.js";
     if (SESSION && !confirm(t("user.confirmLogout"))) return;
     if (SESSION?.provider === "supabase") { try { await CLOUD.signOut(); } catch {} }
     try { localStorage.removeItem("dw_session"); localStorage.removeItem("dw_guest"); } catch {}
-    try { window.google?.accounts?.id?.disableAutoSelect(); } catch {}
     location.href = "login.html";
   });
 
