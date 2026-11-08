@@ -102,7 +102,7 @@ export default async function handler(req, res) {
 
     if (body.type === "tip") {
       const text = clean(body.text, 280);
-      if (text.length < 5) return res.status(400).json({ error: "Tip is too short." });
+      if (text.length === 0) return res.status(400).json({ error: "Please enter a tip." });
       if (!process.env.DISCORD_WEBHOOK_TIPS) return res.status(503).json({ error: "Tips webhook not configured" });
       ok = await postWebhook(process.env.DISCORD_WEBHOOK_TIPS, `💡 **Tip from a neighbour in ${community}:**\n${text}`);
     } else if (body.type === "usage") {
