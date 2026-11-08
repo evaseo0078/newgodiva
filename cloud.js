@@ -60,15 +60,26 @@
     updateHousehold: (hid, patch) => q(sb.from("households").update(patch).eq("id", hid).select().single()),
 
     /* ---- records (household-wide; RLS limits them to your own household) ---- */
+    // hid = household id, or null for your own personal records (when you're not in a household).
     async fetchReadings(hid, sinceMs) {
-      return (await q(sb.from("meter_readings").select("*").eq("household_id", hid).gte("read_at", new Date(sinceMs).toISOString()).order("read_at"))).map(toReading);
+      const base = sb.from("meter_readings").select("*");
+      return (await q((hid ? base.eq("household_id", hid) : base.is("household_id", null)).gte("read_at", new Date(sinceMs).toISOString()).order("read_at"))).map(toReading);
     },
     async fetchLogs(hid, sinceMs) {
-      return (await q(sb.from("activity_logs").select("*").eq("household_id", hid).gte("logged_at", new Date(sinceMs).toISOString()).order("logged_at"))).map(toLog);
+      const base = sb.from("activity_logs").select("*");
+      return (await q((hid ? base.eq("household_id", hid) : base.is("household_id", null)).gte("logged_at", new Date(sinceMs).toISOString()).order("logged_at"))).map(toLog);
     },
-    addReading: (hid, r) => q(sb.from("meter_readings").insert({ id: r.id, household_id: hid, recorded_by: r.by, read_at: new Date(r.ts).toISOString(), value: r.value, unit: r.unit })),
+    // Copy records saved in this browser into your account once (same ids, so repeats are ignored).
+    async importPersonal(readings, logs) {
+      const opts = { onConflict: "id", ignoreDuplicates: true };
+      if (readings.length) await q(sb.from("meter_readings").upsert(readings.map((r) => ({ id: r.id, household_id: null, recorded_by: r.by,
+        read_at: new Date(r.ts).toISOString(), value: r.value, unit: r.unit })), opts));
+      if (logs.length) await q(sb.from("activity_logs").upsert(logs.map((l) => ({ id: l.id, household_id: null, recorded_by: l.by, activity: l.activity,
+        litres: l.litres, minutes: l.minutes ?? null, source: l.source || "button", logged_at: new Date(l.ts).toISOString() })), opts));
+    },
+    addReading: (hid, r) => q(sb.from("meter_readings").insert({ id: r.id, household_id: hid || null, recorded_by: r.by, read_at: new Date(r.ts).toISOString(), value: r.value, unit: r.unit })),
     async deleteReading(id) { const rows = await q(sb.from("meter_readings").delete().eq("id", id).select("id")); if (!rows.length) throw toError("forbidden"); },
-    addLog: (hid, l) => q(sb.from("activity_logs").insert({ id: l.id, household_id: hid, recorded_by: l.by, activity: l.activity, litres: l.litres,
+    addLog: (hid, l) => q(sb.from("activity_logs").insert({ id: l.id, household_id: hid || null, recorded_by: l.by, activity: l.activity, litres: l.litres,
       minutes: l.minutes ?? null, source: l.source || "button", logged_at: new Date(l.ts).toISOString() })),
     async deleteLog(id) { const rows = await q(sb.from("activity_logs").delete().eq("id", id).select("id")); if (!rows.length) throw toError("forbidden"); },
 
@@ -79,7 +90,13 @@
     },
 
     /* ---- live updates for the household ---- */
-    subscribe(hid, onChange) {
+    subscribe(hid, onChange, uid) {
+      if (!hid) { // personal records: follow your own rows so other devices stay in sync
+        const ch = sb.channel("personal-" + uid);
+        for (const table of ["meter_readings", "activity_logs"]) ch.on("postgres_changes", { event: "*", schema: "public", table, filter: `recorded_by=eq.${uid}` }, onChange);
+        ch.subscribe();
+        return () => sb.removeChannel(ch);
+      }
       const ch = sb.channel("household-" + hid);
       for (const table of ["meter_readings", "activity_logs", "household_members", "households"]) {
         ch.on("postgres_changes", { event: "*", schema: "public", table, filter: table === "households" ? `id=eq.${hid}` : `household_id=eq.${hid}` }, onChange);

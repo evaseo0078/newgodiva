@@ -1038,3 +1038,6 @@ Object.assign(window.DW_I18N.ko, {"facts.title": "🌍 숫자로 보는 물과 �
  "facts.whoCanada": "안전하게 관리되는 식수를 쓰는 캐나다인 비율 ({y})", "facts.worldLack": "아직 그렇지 못한 전 세계 인구 비율 ({y})",
  "facts.alberta": "앨버타 주민 1인당 하루 가정 물 사용량 ({y})", "facts.whoNeed": "1인당 하루 기본 생활에 필요한 양 (WHO)",
  "facts.offline": "WHO/UN 실시간 수치를 지금 불러오지 못했어요. 잠시 후 다시 시도해 주세요.", "facts.govOffline": "데이터 목록을 불러오지 못했어요. 여기서 볼 수 있어요:"});
+
+Object.assign(window.DW_I18N.en, {"hh.personalSync": "Your records are saved to your account — log in on any device to see them. Create or join a household to share them with family."});
+Object.assign(window.DW_I18N.ko, {"hh.personalSync": "내 기록은 계정에 저장돼요 — 어느 기기에서든 로그인하면 볼 수 있어요. 가족과 함께 보려면 우리 집을 만들거나 참여하세요."});

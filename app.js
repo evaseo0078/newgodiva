@@ -236,11 +236,13 @@
   }
 
   /* ---------- data layer: local (this browser) or online household (database) ---------- */
-  const cloudOn = () => !!(S.hh && CLOUD.enabled);
+  // Logged in with the online database → records live in your account (household or personal) on every device.
+  const cloudOn = () => !!(CLOUD.enabled && SESSION?.provider === "supabase");
+  const hid = () => S.hh?.id || null;
   function persistLocal() { if (!cloudOn()) { store.set("logs", S.logs); store.set("readings", S.readings); } }
   const Data = {
     async addLog(e) {
-      if (cloudOn()) await CLOUD.addLog(S.hh.id, e);
+      if (cloudOn()) await CLOUD.addLog(hid(), e);
       const k = dateKey(new Date(e.ts));
       (S.logs[k] = S.logs[k] || []).push(e); S.logs[k].sort((a, b) => a.ts - b.ts); persistLocal();
     },
@@ -250,7 +252,7 @@
       S.logs[k] = (S.logs[k] || []).filter((x) => x.id !== e.id); if (!S.logs[k].length) delete S.logs[k]; persistLocal();
     },
     async addReading(r) {
-      if (cloudOn()) await CLOUD.addReading(S.hh.id, r);
+      if (cloudOn()) await CLOUD.addReading(hid(), r);
       S.readings.push({ ...r, date: dateKey(new Date(r.ts)) }); persistLocal();
     },
     async removeReading(r) {
@@ -259,7 +261,7 @@
     }
   };
   const INVERSE = { addLog: "removeLog", removeLog: "addLog", addReading: "removeReading", removeReading: "addReading" };
-  const canDelete = (row) => !cloudOn() || row.by === ME || S.hh?.myRole === "owner";
+  const canDelete = (row) => !cloudOn() || !S.hh || row.by === ME || S.hh?.myRole === "owner";
   function showDataError(err) {
     const code = err?.code || "network";
     $("#historyMsg").textContent = "⚠️ " + t("err." + code);
@@ -390,7 +392,7 @@
     const k = todayKey();
     const steps = [...dayEntries(k).filter(canDelete).map((e) => ["removeLog", e]), ...S.readings.filter((r) => r.date === k && canDelete(r)).map((r) => ["removeReading", r])];
     if (!steps.length) return;
-    if (cloudOn() && !confirm(t("hh.confirmClear"))) return;
+    if (S.hh && !confirm(t("hh.confirmClear"))) return;
     act(t("btn.clearToday"), steps).then(() => { S.warnings = S.warnings.filter((w) => w.id !== "warn-" + k); save("warnings"); renderInbox(); });
   });
   $("#demoBtn").addEventListener("click", () => {
@@ -1392,6 +1394,7 @@
     if (!S.hh) {
       const myQ = quadOf(S.settings?.community) || "NW";
       card.innerHTML = `
+        <p class="hh-note sync-note">☁️ ${esc(t("hh.personalSync"))}</p>
         <div class="hh-choose">
           <form class="hh-panel" id="hhCreate">
             <h3>🏠 ${esc(t("hh.createTitle"))}</h3>
@@ -1469,14 +1472,27 @@
         S.logs = {};
         for (const l of logs) { const k = dateKey(new Date(l.ts)); (S.logs[k] = S.logs[k] || []).push(l); }
         if (was !== hh.id) { S.undo = []; S.redo = []; if (unsub) unsub(); unsub = CLOUD.subscribe(hh.id, scheduleReload); }
-      } else if (was) {
-        // Left or removed: go back to this device's own records.
-        if (unsub) unsub(); unsub = null;
-        S.logs = localLogs(); S.readings = localReadings(); S.names = {};
-        S.undo = store.get("undo", []).filter((u) => Array.isArray(u.steps)); S.redo = [];
+      } else {
+        // Not in a household: your personal records, saved to your account.
+        S.names = {};
+        await importLocalOnce();
+        const since = Date.now() - 62 * 864e5;
+        const [readings, logs] = await Promise.all([CLOUD.fetchReadings(null, since), CLOUD.fetchLogs(null, since)]);
+        S.readings = readings.map((r) => ({ ...r, date: dateKey(new Date(r.ts)) }));
+        S.logs = {};
+        for (const l of logs) { const k = dateKey(new Date(l.ts)); (S.logs[k] = S.logs[k] || []).push(l); }
+        if (was || !unsub) { S.undo = []; S.redo = []; if (unsub) unsub(); unsub = CLOUD.subscribe(null, scheduleReload, ME); }
       }
     } catch (err) { renderHousehold(); hhMsg(errText(err), "error"); return; }
     renderHousehold(); renderShareToggle(); renderAll(); loadRanking();
+  }
+  // First login on this device: copy records that were saved only in this browser into the account (once).
+  async function importLocalOnce() {
+    if (store.get("imported", false)) return;
+    const logs = Object.values(localLogs()).flat().map((l) => ({ ...l, by: ME }));
+    const readings = localReadings().map((r) => ({ ...r, by: ME }));
+    if (logs.length || readings.length) await CLOUD.importPersonal(readings, logs);
+    store.set("imported", true);
   }
   function scheduleReload() { clearTimeout(reloadTimer); reloadTimer = setTimeout(loadHousehold, 400); }
 
