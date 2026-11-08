@@ -204,17 +204,14 @@
               </label>
             </div>
             <div class="meter-actions">
-              <button id="scanBtn" class="glass-btn scan" type="button" data-i18n="meter.scan">📷 Scan meter photo</button>
-              <input id="meterPhoto" type="file" accept="image/*" capture="environment" hidden />
               <button id="reconcileBtn" class="btn-primary" type="button" data-i18n="meter.save">Save reading</button>
             </div>
           </div>
           <p class="dial-total"><span data-i18n="meter.equals">That's</span> <strong id="meterLitresPreview">—</strong> <span data-i18n="meter.onMeterTotal">on the meter in total</span> <span id="meterDiffPreview" class="muted"></span></p>
-          <p id="scanMsg" class="scan-msg" aria-live="polite"></p>
           <p id="meterInfo" class="meter-info" aria-live="polite"></p>
           <table class="readings">
             <caption data-i18n="meter.history">Your recent readings</caption>
-            <thead><tr><th scope="col" data-i18n="meter.colTime">Time</th><th scope="col" data-i18n="meter.colReading">Reading</th><th scope="col" data-i18n="meter.colDiff">Change since previous</th><th scope="col" data-i18n="meter.colBy">By</th></tr></thead>
+            <thead><tr><th scope="col" data-i18n="meter.colTime">Time</th><th scope="col" data-i18n="meter.colReading">Reading</th><th scope="col" data-i18n="meter.colDiff">Change since previous</th><th scope="col" data-i18n="meter.colRate">Per day</th><th scope="col" data-i18n="meter.colBy">By</th></tr></thead>
             <tbody id="readingsBody"></tbody>
           </table>
           <label class="toggle">
@@ -252,12 +249,11 @@
                 <li data-i18n="guide.s3"><strong>Read the numbers left to right.</strong> The black wheels are whole units.</li>
                 <li data-i18n="guide.s4"><strong>Red or smaller digits come after the decimal point.</strong> Example: black 01234 + red 567 → type <strong>1234.567</strong>.</li>
                 <li data-i18n="guide.s5"><strong>Skip the little spinning triangle or star</strong> — that's the leak indicator, not part of the number.</li>
-                <li data-i18n="guide.s6"><strong>Press Save reading.</strong> The time is filled in for you — change it if you read the meter earlier. Or tap 📷 to fill the number from a photo, then check it.</li>
+                <li data-i18n="guide.s6"><strong>Press Save reading.</strong> The time is filled in for you — change it if you read the meter earlier.</li>
                 <li data-i18n="guide.s7"><strong>Same time every day</strong> (for example after breakfast) gives the most accurate daily number.</li>
               </ol>
             </div>
             <p class="guide-tip" data-i18n="guide.leak">💧 <strong>Leak check:</strong> don't use any water for 30 minutes. If the red numbers or the leak indicator move, you may have a leak — a running toilet is the most common cause.</p>
-            <p class="fineprint" data-i18n="guide.privacy">🔒 Photo privacy: your photo is shrunk on your device, sent once to read the number, then thrown away. It is never saved — not on this device, not on our server.</p>
             <p class="fineprint" data-i18n="guide.note">Meters differ — some show cubic metres, some cubic feet, and the number of digits varies. DropWise converts every reading to litres (1 m³ = 1,000 L, 1 ft³ ≈ 28.3 L). The drawing is an example, not a specific meter model.</p>
           </section>
         </div>
@@ -450,7 +446,6 @@
         <h2 id="commTitle" data-i18n="comm.title">Calgary Water Community</h2>
         <p class="muted" data-i18n="comm.sub">Talk with neighbours, share tips and help each other through the restrictions — on Discord.</p>
       </div>
-      <div class="grid-2">
         <article class="card">
           <div id="discordServer" class="discord-server">
             <span class="discord-logo" aria-hidden="true">💬</span>
@@ -471,14 +466,6 @@
           </form>
           <p class="fineprint" data-i18n="comm.fine">Posts are public in our Discord and show only your community name. Please don't share your address or personal details. Moderated by the DropWise team.</p>
         </article>
-        <article class="card">
-          <h3 class="card-title" data-i18n="comm.latest">Latest from #water-saving-tips</h3>
-          <ul id="discordFeed" class="feed" aria-live="polite"><li class="muted">Loading community posts…</li></ul>
-          <h3 class="mini-title" data-i18n="comm.311">Water issues reported to 311 near you</h3>
-          <div id="open311" class="open311" aria-live="polite"><p class="muted">Loading City 311 data…</p></div>
-          <p class="fineprint">Source: City of Calgary Open Data — 311 Service Requests (Water Services, last 30 days).</p>
-        </article>
-      </div>
       <article class="card neighbour-card" aria-labelledby="nbTitle">
         <h3 class="card-title" id="nbTitle" data-i18n="nb.title">🏘️ Check on a neighbour</h3>
         <p data-i18n="nb.body">Not everyone sees city alerts. Seniors, newcomers and neighbours who don't read English may not know the rules — or may be skipping water they need. A quick knock or text helps.</p>
@@ -518,7 +505,7 @@
     <div class="footer-inner">
       <p class="footer-brand" data-i18n="foot.brand">💧 DropWise <span class="yyc">YYC</span> — made in Calgary, for Calgarians.</p>
       <p data-i18n="foot.official"><strong>Community project — not an official City of Calgary website.</strong> For official information visit <a href="https://www.calgary.ca/savewater" target="_blank" rel="noopener">calgary.ca/savewater</a> or call 311.</p>
-      <p><strong>Data sources:</strong> City of Calgary (Stage 4 restrictions, construction notices, Open Data: community boundaries &amp; 311 requests) · Statistics Canada WDS (table 38-10-0271-01) · CBC Calgary news feed · Discord.</p>
+      <p><strong>Data sources:</strong> City of Calgary (Stage 4 restrictions, construction notices, Open Data: community boundaries) · Statistics Canada WDS (table 38-10-0271-01) · CBC Calgary news feed · Discord.</p>
       <p data-i18n="foot.privacy"><strong>Privacy:</strong> No account, no tracking. Your logs stay in this browser unless you choose to join the community challenge.</p>
     </div>
   </footer>

@@ -257,14 +257,6 @@ dialog::backdrop { background: rgba(10, 30, 50, 0.45); }
 .channel-list small { color: var(--muted); }
 .tip-form textarea { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); font: inherit; resize: vertical; }
 .tip-row { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
-.feed { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; max-height: 300px; overflow-y: auto; }
-.feed li.post { padding: 10px 12px; border-radius: 12px; background: #f7f8fc; }
-.feed .who { font-weight: 700; font-size: 0.85rem; }
-.feed .when { color: var(--muted); font-size: 0.75rem; margin-left: 6px; }
-.feed p { margin: 4px 0 0; font-size: 0.92rem; white-space: pre-wrap; }
-.open311 ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-.open311 li { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 10px; background: #f7fafc; font-size: 0.88rem; }
-.open311 b { color: var(--primary); }
 .top-alert > div { flex: 1 1 280px; }
 
 /* Toggle */
@@ -450,7 +442,7 @@ body { font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neu
 }
 .city-meter { background: rgba(10, 25, 45, 0.35); border-color: rgba(255, 255, 255, 0.3); box-shadow: none; }
 .tip, .insight, .benchmark, .meter-info, .my-stats, .cal-detail, .rank-summary div, .quad-rank li, .channel-list a, .channel-list .ch,
-.feed li.post, .open311 li, .toggle, .msg.bot, .cal-day, .wday, .discord-server, .rank-banner {
+.toggle, .msg.bot, .cal-day, .wday, .discord-server, .rank-banner {
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.65);
 }
@@ -501,11 +493,7 @@ html.large-text .card { background: rgba(255, 255, 255, 0.8); } /* more contrast
 .meter-box h4 { margin: 0 0 10px; }
 .meter-box .meter-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .meter-box .meter-row input { flex: 1 1 220px; }
-.glass-btn.scan { background: rgba(88, 101, 242, 0.12); }
-.scan-msg { margin: 8px 0 0; font-size: 0.88rem; }
-.scan-msg:empty { display: none; }
-.scan-msg.ok { color: #1e7b34; font-weight: 600; }
-.scan-msg.warn { color: #8a6200; font-weight: 600; }
+.meter-info .glass-btn { margin-inline-start: 6px; padding: 5px 10px; font-size: 0.85rem; }
 .today-grid { grid-template-columns: 210px 1fr 340px; }
 @media (max-width: 1000px) { .today-grid { grid-template-columns: 210px 1fr; } .today-grid .donut-wrap { grid-column: 1 / -1; } }
 @media (max-width: 560px) { .today-grid { grid-template-columns: 1fr; } .today-card .tank-wrap { justify-content: center; } }
@@ -603,6 +591,12 @@ html, body { overflow-x: clip; }
 .readings th { text-align: start; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; }
 .readings td { padding: 7px 8px; border-top: 1px solid rgba(15,29,43,0.08); font-variant-numeric: tabular-nums; }
 .readings tr.neg td { color: var(--warn); }
+@media (max-width: 600px) {
+  .readings { font-size: 0.8rem; }
+  .readings th, .readings td { padding: 6px 4px; }
+  .readings th { font-size: 0.68rem; letter-spacing: 0.02em; }
+  .readings td small { display: block; }
+}
 .login-page .top-actions { margin-left: auto; }
 [dir="rtl"] .login-page .top-actions, [dir="rtl"].login-page .top-actions { margin-left: 0; margin-right: auto; }
 

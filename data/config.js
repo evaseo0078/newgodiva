@@ -120,7 +120,6 @@ window.DW_CONFIG = {
   statcan: { productId: 38100271, table: "38-10-0271-01", url: "https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3810027101" },
 
   // City of Calgary Open Data: 311 Service Requests (water-service types start with "WATS -").
-  open311: { dataset: "iahh-g8bj", prefix: "WATS", days: 30 },
 
   // DEMO quadrant ranking — shown with a "Demo data" banner only until the Discord bot is connected.
   demoRanking: {

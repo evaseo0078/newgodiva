@@ -28,14 +28,14 @@ No keys are needed for the first five. Results are cached for a day; if a source
 |---|---|---|
 | Alerts inbox | ⚫ City notices, 🔴 personal over-use warnings, 📰 local water news | City of Calgary notices (curated in `data/config.js`), CBC Calgary RSS (`/api/news`) |
 | Today's usage | Water tank (green → yellow → red), big litres number with editable daily goal, donut by category; quick-add buttons (shower, laundry, dishwasher, flush, bath, other); **Undo / Redo** backup (also Ctrl+Z / Ctrl+Y) and a removable log | City of Calgary per-activity figures; your log (browser only) |
-| Water meter | 📷 Scan a meter photo → AI fills the reading (photo shrunk in the browser, sent once, never stored), or type it; *Save & reconcile* puts any gap under "Extra" | Claude vision (`/api/meter-read`) |
+| Water meter | Type the number on your meter, pick m³ or ft³ and the time read; usage per day and per person comes from the difference between readings | — |
 | Calendar | Restriction & construction dates + whether you met your goal each day | City of Calgary (curated, with source links) |
 | Shower timer | 3-minute goal (City advice), history, streaks — stays on this device | Your showers |
 | Quadrant Water Challenge | Calgary map coloured by NW/NE/SW/SE (red = highest litres per person), weekly ranking | City of Calgary Open Data map API (Community District Boundaries GeoJSON) + opt-in reports via Discord #water-challenge (`/api/discord?view=ranking`) |
 | Calgary Water Community | Discord server card (online count, join button, channels), live #water-tips feed, post a tip, share shower wins | Discord Widget API, Discord bot + webhooks (`/api/discord`) |
 | 311 near you | Water-service requests in your community, last 30 days | City of Calgary Open Data — 311 Service Requests (`iahh-g8bj`) |
 | Alberta benchmark | Average residential L/person/day for Alberta & Canada; used as the default daily goal | Statistics Canada WDS, Table 38-10-0271-01 (`/api/statcan`) |
-| Ask DropBot | Chatbot that knows the rules, the calendar, your household and live data | Claude API (`/api/chat`) |
+| Ask DropBot | Chatbot that knows the rules, the calendar, your household and live data | Google Gemini (`/api/chat`) |
 
 ## Log in
 `login.html` — email + password accounts or **Continue with Google**, plus *look around without logging in*. Each account's records are stored separately (key prefix per user).
@@ -43,7 +43,7 @@ No keys are needed for the first five. Results are cached for a day; if a source
 - **Google sign-in:** create an OAuth 2.0 *Web* client ID in Google Cloud Console, add your site URL (and `http://localhost:3000`) to *Authorized JavaScript origins*, and paste the ID into `googleClientId` in `data/config.js`. One Tap auto sign-in turns on automatically. In production, verify the Google token on a server.
 
 ## Water meter
-Type the number on the meter (decimals allowed), pick the unit (m³ or ft³), and the time you read it — or scan a photo and let AI fill the number and unit. Each reading is saved with its unit and time, converted to litres (1 m³ = 1,000 L, 1 ft³ = 28.3168 L), and compared with the previous reading.
+Type the number on the meter (decimals allowed), pick the unit (m³ or ft³), and the time you read it. Each reading is saved with its unit and time, converted to litres (1 m³ = 1,000 L, 1 ft³ = 28.3168 L), and compared with the previous reading.
 
 ## Run it
 **Quick look (static server):** run `npm run dev` and open the local URL it prints. The app uses browser ES modules, so serve it over HTTP rather than opening `index.html` with `file://`. Community names load live; Discord, news, StatCan and AI fall back to offline/demo mode.
@@ -51,8 +51,8 @@ Type the number on the meter (decimals allowed), pick the unit (m³ or ft³), an
 **Full version (recommended for the demo):**
 1. Install the Vercel CLI: `npm i -g vercel`
 2. Add environment variables (Vercel dashboard → Settings → Environment Variables, or a local `.env` file):
-   - `ANTHROPIC_API_KEY` — for DropBot and the meter-photo reader
-   - `ANTHROPIC_MODEL` (optional)
+   - `GEMINI_API_KEY` — for DropBot (Google Gemini) and the `/api/gemini` endpoint
+   - `GEMINI_MODEL` (optional, default `gemini-3.5-flash`) and `GEMINI_FALLBACK_MODEL` (optional, default `gemini-3.8-flash`, used once if the first model is busy or unavailable)
    - `DISCORD_BOT_TOKEN`, `DISCORD_FEED_CHANNEL_ID`, `DISCORD_CHALLENGE_CHANNEL_ID`, `DISCORD_WEBHOOK_TIPS`, `DISCORD_WEBHOOK_CHALLENGE` — see Discord setup
 3. Local: `vercel dev` → http://localhost:3000. Deploy: `vercel --prod`.
 
@@ -84,6 +84,12 @@ When someone is logged in (Supabase), their records are saved to the database ev
 - Existing Supabase project: run `supabase/personal_records.sql` once in the SQL Editor **before** deploying this version (new projects get it from `schema.sql`).
 - Records saved in a browser before logging in to the same account are copied into the account once.
 - "Look around without logging in" still keeps records in that browser only.
+
+## Water meter readings
+- Type the number on your meter, pick its unit (m³ or ft³) and the time you read it, then press *Save reading*.
+- Usage = difference between consecutive cumulative readings, converted to litres (1 m³ = 1,000 L, 1 ft³ ≈ 28.3 L) and divided by the real time between them. A gap of several days is shown as a daily average, not as one day's use. Intervals under 12 hours get no per-day rate.
+- A reading lower than the previous one is refused unless you mark it as **meter replaced/reset**, which starts a new baseline. Duplicates (same value within 10 minutes) are blocked; big jumps and unit changes ask for confirmation.
+- Existing Supabase project: run `supabase/meter_reading_quality.sql` once in the SQL Editor (new projects get it from `schema.sql`). Until then, saving still works; the reset flag just stays in the browser.
 
 ## Discord setup (about 15 minutes)
 1. Create a server, e.g. "DropWise YYC Community", with channels `#water-tips`, `#help-a-neighbour`, `#water-challenge`, `#city-alerts` (make #city-alerts read-only).

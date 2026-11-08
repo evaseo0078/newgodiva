@@ -3,6 +3,7 @@ import "./data/restrictions.js";
 import "./data/restriction-calendar.js";
 import "./data/calendar-presentation.js";
 import "./data/household-calendar.js";
+import MU from "./data/meter-usage.js";
 
 (async () => {
   "use strict";
@@ -107,14 +108,11 @@ import "./data/household-calendar.js";
   };
   const dayEntries = (k = todayKey()) => S.logs[k] || [];
   const estimatedTotal = (k = todayKey()) => dayEntries(k).reduce((s, e) => s + e.litres, 0);
-  // Meter-based use for a day = last reading on that day − last reading before that day (litres).
-  function meterUse(k = todayKey()) {
-    const sorted = [...S.readings].sort((a, b) => a.ts - b.ts);
-    const onDay = sorted.filter((r) => r.date === k), before = sorted.filter((r) => r.date < k);
-    if (!onDay.length || !before.length) return null;
-    const diff = onDay[onDay.length - 1].litres - before[before.length - 1].litres;
-    return diff >= 0 ? diff : null;
-  }
+  // Meter-based use for a day = last reading on that day − last reading on the PREVIOUS day (litres).
+  // A gap of several days is not one day's use: it's shown as a daily average instead (meterAverage).
+  const meterUse = (k = todayKey()) => MU.dayUse(S.readings, k, (ts) => dateKey(new Date(ts)));
+  // Time-weighted average litres per day (and per person) over the last 7 days of valid meter intervals.
+  const meterAverage = (days = 7) => MU.average(S.readings, { residents: residents(), sinceTs: Date.now() - days * 864e5 });
   // MEASURED (meter) and ESTIMATED (activities) are kept apart and never added together.
   // The day's total is the meter number when there is one; otherwise the activity estimate.
   const dayTotal = (k = todayKey()) => { const m = meterUse(k); return m != null ? m : estimatedTotal(k); };
@@ -151,7 +149,7 @@ import "./data/household-calendar.js";
       community: $("#setCommunity").value || C.fallbackCommunities[0].name
     };
     save("settings");
-    renderAll(); load311();
+    renderAll();
   });
   $("#settingsBtn").addEventListener("click", openSettings);
 
@@ -497,15 +495,17 @@ import "./data/household-calendar.js";
 
   /* ---------- water meter: one decimal number + unit (m³ or ft³) + time read ---------- */
   // Every reading is stored with its unit and time, and converted to litres so any two readings can be compared.
-  const L_PER = { m3: 1000, ft3: 28.316846592 };
+  // Usage maths (intervals, daily rates, resets, duplicate checks) lives in data/meter-usage.js.
+  const L_PER = MU.L_PER;
   const UNIT_LABEL = { m3: "m³", ft3: "ft³" };
-  const toLitres = (value, unit) => value * (L_PER[unit] || 1000);
+  const toLitres = MU.toLitres;
   const fmtReading = (r) => `${Number(r.value).toLocaleString("en-CA", { maximumFractionDigits: 4 })} ${UNIT_LABEL[r.unit] || r.unit}`;
   const localInputValue = (d = new Date()) => {
     const p = (n) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   };
-  const sortedReadings = () => [...S.readings].sort((a, b) => a.ts - b.ts);
+  const sortedReadings = () => MU.sortReadings(S.readings);
+  const fmtSpan = (hrs) => (hrs < 48 ? Math.round(hrs) + " h" : Math.round(hrs / 24) + " d");
   $("#meterUnit").value = store.get("meterUnit", "m3");
   $("#meterTime").value = localInputValue();
   function updateLitresPreview() {
@@ -513,7 +513,7 @@ import "./data/household-calendar.js";
     if (!(v >= 0)) { el.textContent = "—"; $("#meterDiffPreview").textContent = ""; return; }
     const L = toLitres(v, unit), prev = sortedReadings().filter((r) => r.ts < meterTimeTs()).pop();
     el.textContent = Math.round(L).toLocaleString("en-CA") + " L";
-    $("#meterDiffPreview").textContent = prev ? t("meter.sincePrev", { n: fmtL(L - prev.litres) }) : "";
+    $("#meterDiffPreview").textContent = prev && !(L < prev.litres) ? t("meter.sincePrev", { n: fmtL(L - prev.litres) }) : "";
   }
   const meterTimeTs = () => { const v = $("#meterTime").value; const d = v ? new Date(v) : new Date(); return isNaN(d) ? Date.now() : d.getTime(); };
   ["input", "change"].forEach((ev) => {
@@ -527,85 +527,61 @@ import "./data/household-calendar.js";
     const rs = sortedReadings(), last = rs[rs.length - 1], info = $("#meterInfo");
     renderReadings();
     if (!last) { info.textContent = t("meter.hint"); return; }
-    const used = meterUse();
+    const used = meterUse(), avg = meterAverage();
     const when = new Date(last.ts).toLocaleString(LOCALE[lang], { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" });
     info.innerHTML = `${esc(t("meter.last"))} <strong>${esc(fmtReading(last))}</strong> (${esc(when)}).` +
-      (used != null ? ` ${esc(t("meter.today"))} <strong>${fmtL(used)}</strong>.` : ` ${esc(t("meter.tomorrow"))}`);
+      (used != null ? ` ${esc(t("meter.today"))} <strong>${fmtL(used)}</strong>.` : ` ${esc(t("meter.tomorrow"))}`) +
+      (avg ? ` ${esc(t("meter.average", { n: fmtL(avg.perDay), p: fmtL(avg.perPerson), d: fmtSpan(avg.hours) }))}` : "");
   }
   function renderReadings() {
     const rs = sortedReadings(), body = $("#readingsBody"); if (!body) return;
-    const rows = rs.map((r, i) => {
-      const prev = rs[i - 1], diff = prev ? r.litres - prev.litres : null, hrs = prev ? (r.ts - prev.ts) / 3600e3 : null;
+    const byTo = new Map(MU.intervals(rs, { residents: residents() }).map((iv) => [iv.to.id, iv]));
+    const rows = rs.map((r) => {
+      const iv = byTo.get(r.id), diff = iv ? iv.to.litres - iv.from.litres : null;
       const when = new Date(r.ts).toLocaleString(LOCALE[lang], { timeZone: TZ, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-      const d = diff == null ? "—" : `${diff >= 0 ? "+" : ""}${fmtL(diff)}${hrs ? ` <small class="muted">/ ${hrs < 48 ? Math.round(hrs) + " h" : Math.round(hrs / 24) + " d"}</small>` : ""}`;
-      return `<tr class="${diff != null && diff < 0 ? "neg" : ""}"><td>${esc(when)}</td><td>${esc(fmtReading(r))}</td><td>${d}</td><td>${esc(firstName(r.by))}</td></tr>`;
+      const d = !iv ? "—" : iv.status === "reset" ? esc(t("meter.resetRow"))
+        : `${diff >= 0 ? "+" : ""}${fmtL(diff)} <small class="muted">/ ${fmtSpan(iv.hours)}</small>`;
+      const rate = !iv || iv.status === "reset" || iv.status === "negative" ? "—"
+        : iv.status === "short" ? `<small class="muted">${esc(t("meter.tooShort"))}</small>`
+        : `${fmtL(iv.perDay)}<small class="muted"> · ${fmtL(iv.perPerson)}/${esc(t("meter.person"))}</small>`;
+      return `<tr class="${iv?.status === "negative" ? "neg" : ""}"><td>${esc(when)}</td><td>${esc(fmtReading(r))}</td><td>${d}</td><td>${rate}</td><td>${esc(firstName(r.by))}</td></tr>`;
     }).reverse().slice(0, 6);
-    body.innerHTML = rows.join("") || `<tr><td colspan="4" class="muted">${esc(t("meter.noReadings"))}</td></tr>`;
+    body.innerHTML = rows.join("") || `<tr><td colspan="5" class="muted">${esc(t("meter.noReadings"))}</td></tr>`;
   }
 
-  // 1) Photo → AI reads the number (and unit, if printed) → fills the input. The photo is shrunk in the browser, sent once, then discarded.
-  $("#scanBtn").addEventListener("click", () => $("#meterPhoto").click());
-  $("#meterPhoto").addEventListener("change", async (e) => {
-    const file = e.target.files?.[0], msg = $("#scanMsg");
-    e.target.value = ""; // forget the file immediately
-    if (!file) return;
-    msg.className = "scan-msg"; msg.textContent = t("scan.reading");
-    let dataUrl = null;
-    try {
-      dataUrl = await shrinkImage(file, 1280);
-      const r = await fetch("/api/meter-read", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: dataUrl.split(",")[1], mediaType: "image/jpeg" }) });
-      const out = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(out.error || "unavailable");
-      if (out.reading == null) {
-        msg.className = "scan-msg warn"; msg.textContent = t("scan.unclear");
-      } else {
-        $("#meterValue").value = out.reading;
-        if (L_PER[out.unit]) { $("#meterUnit").value = out.unit; store.set("meterUnit", out.unit); }
-        $("#meterTime").value = localInputValue();
-        msg.className = "scan-msg " + (out.confidence === "high" ? "ok" : "warn");
-        msg.textContent = t(out.confidence === "high" ? "scan.ok" : "scan.check", { n: `${out.reading} ${UNIT_LABEL[out.unit] || ""}`.trim() });
-        updateLitresPreview();
-      }
-    } catch (err) {
-      msg.className = "scan-msg warn"; msg.textContent = t("scan.unavailable");
-    } finally { dataUrl = null; $("#meterValue").focus(); }
-  });
-  function shrinkImage(file, maxSide) {
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file), img = new Image();
-      img.onload = () => {
-        const k = Math.min(1, maxSide / Math.max(img.width, img.height));
-        const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url);
-        const out = c.toDataURL("image/jpeg", 0.85); c.width = c.height = 0; resolve(out);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
-      img.src = url;
-    });
-  }
-
-  // 2) Save the reading (value + unit + time) and reconcile today's log with the meter; any gap goes to "Extra".
-  $("#reconcileBtn").addEventListener("click", () => {
-    const v = parseFloat(String($("#meterValue").value).replace(",", ".")), unit = $("#meterUnit").value, info = $("#meterInfo");
-    if (!(v >= 0)) { info.textContent = t("meter.empty"); $("#meterValue").focus(); return; }
+  // Save the reading (value + unit + time). Checks: duplicates, out-of-order, lower than before (fix or meter reset),
+  //    big jumps for the elapsed time, and unit changes. Measured and estimated use are never added together.
+  function saveReading({ reset = false } = {}) {
+    const info = $("#meterInfo");
+    const v = parseFloat(String($("#meterValue").value).replace(",", ".")), unit = $("#meterUnit").value;
+    if (!(v >= 0) || !Number.isFinite(v)) { info.textContent = t("meter.empty"); $("#meterValue").focus(); return; }
     const ts = Math.min(meterTimeTs(), Date.now() + 5 * 60e3), litres = toLitres(v, unit);
-    const rs = sortedReadings(), prev = rs.filter((r) => r.ts < ts).pop(), next = rs.find((r) => r.ts > ts);
-    if (prev && litres < prev.litres) { info.textContent = t("meter.lower", { r: fmtReading(prev) }); return; }
-    if (next && litres > next.litres) { info.textContent = t("meter.higher", { r: fmtReading(next) }); return; }
-    if (prev && litres - prev.litres > 5000 && !confirm(t("meter.bigJump", { n: fmtL(litres - prev.litres) }))) return;
-    const row = { id: newId(), ts, value: v, unit, litres, by: ME };
-    act(`${t("meter.title")} ${v} ${UNIT_LABEL[unit]}`, [["addReading", row]]).then((ok) => {
+    const row = { id: newId(), ts, value: v, unit, litres, by: ME, source: "manual" };
+    if (reset) row.reset = true;
+    const issues = MU.checkReading(S.readings, row), prev = sortedReadings().filter((r) => r.ts < ts).pop();
+    for (const i of issues) {
+      if (i.code === "duplicate") { info.textContent = t("meter.duplicate", { r: fmtReading(i.reading) }); return; }
+      if (i.code === "sameTime") { info.textContent = t("meter.sameTime", { r: fmtReading(i.reading) }); return; }
+      if (i.code === "higherThanNext") { info.textContent = t("meter.higher", { r: fmtReading(i.reading) }); return; }
+      if (i.code === "lower") {
+        info.innerHTML = `${esc(t("meter.lower", { r: fmtReading(i.reading) }))} <button id="meterResetBtn" class="glass-btn" type="button">${esc(t("meter.resetBtn"))}</button>`;
+        $("#meterResetBtn").addEventListener("click", () => { if (confirm(t("meter.resetConfirm"))) saveReading({ reset: true }); });
+        return;
+      }
+      if (i.code === "bigJump" && !confirm(t("meter.bigJump", { n: fmtL(i.litres) }))) return;
+      if (i.code === "unitChanged" && !confirm(t("meter.unitChanged", { u: UNIT_LABEL[i.reading.unit] }) + " " + t("meter.saveAnyway"))) return;
+    }
+    act(`${t("meter.title")} ${v} ${UNIT_LABEL[unit]}${reset ? " ↺" : ""}`, [["addReading", row]]).then((ok) => {
       if (!ok) return;
       const measured = meterUse(), est = estimatedTotal();
-      $("#meterInfo").textContent = measured != null
-        ? t("meter.compare", { m: fmtL(measured), e: fmtL(est) })
+      $("#meterInfo").textContent = reset ? t("meter.savedReset")
+        : measured != null ? t("meter.compare", { m: fmtL(measured), e: fmtL(est) })
         : prev ? t("meter.savedDiff", { n: fmtL(litres - prev.litres) }) : t("meter.savedFirst");
       maybeShareUsage();
     });
-    $("#meterValue").value = ""; $("#meterTime").value = localInputValue(); $("#scanMsg").textContent = ""; updateLitresPreview();
-  });
+    $("#meterValue").value = ""; $("#meterTime").value = localInputValue(); updateLitresPreview();
+  }
+  $("#reconcileBtn").addEventListener("click", () => saveReading());
 
   /* ---------- donut ---------- */
   // Breakdown of the ESTIMATES by category. If the meter measured more, the rest shows as "Not itemized" (display only).
@@ -880,10 +856,6 @@ import "./data/household-calendar.js";
 
   /* ---------- community: Discord ---------- */
   const D = C.discord;
-  const timeAgo = (iso) => {
-    const m = Math.round((Date.now() - new Date(iso)) / 60000);
-    return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
-  };
   async function loadDiscordWidget() {
     const join = $("#discordJoin");
     if (D.inviteUrl) { join.href = D.inviteUrl; join.hidden = false; }
@@ -904,17 +876,6 @@ import "./data/household-calendar.js";
       return `<li>${href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="ch">${inner}</div>`}</li>`;
     }).join("");
   }
-  async function loadFeed() {
-    const feed = $("#discordFeed");
-    try {
-      const r = await fetch("/api/discord"); if (!r.ok) throw new Error(r.status);
-      const { posts } = await r.json();
-      feed.innerHTML = posts.length ? posts.map((p) => `<li class="post"><span class="who">${esc(p.author)}</span><span class="when">${timeAgo(p.time)}</span><p>${esc(p.text)}</p></li>`).join("")
-        : "<li class='muted'>No posts yet — be the first to share a tip!</li>";
-    } catch {
-      feed.innerHTML = "<li class='muted'>Live posts appear here once the Discord bot is connected (see README).</li>";
-    }
-  }
   async function postToDiscord(payload) {
     const r = await fetch("/api/discord", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...payload, community: S.settings?.community }) });
@@ -930,7 +891,6 @@ import "./data/household-calendar.js";
       await postToDiscord({ type: "tip", text });
       $("#tipText").value = ""; $("#tipCount").textContent = "0 / 280";
       msg.textContent = "✅ Posted to #water-saving-tips. Thanks for helping your neighbours!";
-      setTimeout(loadFeed, 1500);
     } catch (err) {
       try { await navigator.clipboard.writeText(text); msg.textContent = `${err.message} Your tip was copied — paste it in #water-saving-tips on Discord.`; }
       catch { msg.textContent = `${err.message} Please paste your tip in #water-saving-tips on Discord.`; }
@@ -1184,13 +1144,14 @@ import "./data/household-calendar.js";
   });
   async function maybeShareUsage() {
     if (S.hh) { setTimeout(loadRanking, 1000); return; } // the database computes the ranking from meter readings
-    if (!S.autoShare) return;
-    const used = meterUse(), q = quadOf(S.settings?.community), msg = $("#shareMsg");
-    if (used == null) return;
+    if (!S.autoShare) return; // opt-in only
+    // Litres per person per day from confirmed readings: a time-weighted average over the last 7 days (needs ≥ 12 h of valid intervals).
+    const avg = meterAverage(), q = quadOf(S.settings?.community), msg = $("#shareMsg");
+    if (!avg) return;
     if (!q) { msg.textContent = "We couldn't find your quadrant — please pick your community in Settings."; return; }
     const k = todayKey();
     if (store.get("sharedDay", "") === k) { msg.textContent = "Today's use is already counted for your quadrant."; return; }
-    const lpd = Math.round(used / (S.settings?.household || 1));
+    const lpd = Math.round(avg.perPerson);
     try {
       await postToDiscord({ type: "usage", quadrant: q, lpd });
       store.set("sharedDay", k);
@@ -1286,23 +1247,6 @@ import "./data/household-calendar.js";
   }
   $("#rankRefresh").addEventListener("click", loadRanking);
 
-  /* ---------- community: City 311 water requests (Open Data, no key) ---------- */
-  async function load311() {
-    const box = $("#open311"), comm = (S.settings?.community || "").toUpperCase();
-    if (!comm) return;
-    const since = new Date(Date.now() - C.open311.days * 864e5).toISOString().slice(0, 19);
-    const where = `service_name like '${C.open311.prefix}%' AND upper(comm_name)='${comm.replace(/'/g, "''")}' AND requested_date > '${since}'`;
-    const url = `https://data.calgary.ca/resource/${C.open311.dataset}.json?$select=service_name,count(*) AS n` +
-      `&$where=${encodeURIComponent(where)}&$group=service_name&$order=n DESC&$limit=6`;
-    try {
-      const r = await fetch(url); if (!r.ok) throw new Error(r.status);
-      const rows = await r.json();
-      box.innerHTML = rows.length
-        ? `<ul>${rows.map((x) => `<li>${esc(x.service_name.replace(/^WATS - /, ""))}<b>${x.n}</b></li>`).join("")}</ul>`
-        : `<p class="muted">No water-service requests in ${esc(S.settings.community)} in the last ${C.open311.days} days. 👍</p>`;
-    } catch { box.innerHTML = `<p class="muted">City 311 data is unavailable right now.</p>`; }
-  }
-
   /* ---------- chatbot ---------- */
   const chat = [];
   const chips = ["How much water can my family of 5 use per day?", "How often should I do laundry?",
@@ -1325,6 +1269,7 @@ import "./data/household-calendar.js";
       siteLanguage: lang,
       household: S.hh ? { name: S.hh.name, quadrant: S.hh.quadrant, residents: S.hh.residents, appMembers: S.hh.members.length } : null,
       measuredTodayLitres: meterUse() != null ? Math.round(meterUse()) : null,
+      meterAverageLast7Days: (() => { const a = meterAverage(); return a ? { litresPerDay: Math.round(a.perDay), litresPerPersonPerDay: Math.round(a.perPerson), basedOnDays: +a.days.toFixed(1) } : null; })(),
       estimatedTodayLitres: Math.round(estimatedTotal()),
       household: S.settings?.household, community: S.settings?.community,
       perPersonGoalLitres: S.settings?.perPerson, dailyGoalLitres: budget(), usedTodayLitres: Math.round(dayTotal()),
@@ -1346,11 +1291,14 @@ import "./data/household-calendar.js";
     try {
       const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: chat.slice(-10), context: context() }) });
-      if (!r.ok) throw new Error(r.status);
-      answer = (await r.json()).reply; if (!answer) throw new Error("empty");
-      note = "AI answer · general guidance, not official City advice";
-    } catch {
-      answer = offlineAnswer(q); note = "Offline answer (AI server not connected)";
+      const out = await r.json().catch(() => ({}));
+      if (!r.ok) { const e = new Error(out.code || r.status); e.code = out.code; throw e; }
+      answer = out.reply; if (!answer) throw new Error("empty");
+      note = t("bot.noteAI");
+    } catch (err) {
+      // The built-in answers (from the same facts the site shows) keep DropBot useful when the AI is busy or offline.
+      answer = offlineAnswer(q);
+      note = t(err.code === "rate_limited" || err.code === "busy" ? "bot.noteBusy" : err.code === "blocked" ? "bot.noteBlocked" : "bot.noteOffline");
     }
     pending.remove(); addMsg("bot", answer, note); chat.push({ role: "assistant", content: answer });
   }
@@ -1764,5 +1712,5 @@ import "./data/household-calendar.js";
   setInterval(refreshRestrictions, 5 * 60 * 1000);
   window.addEventListener("online", refreshRestrictions);
   renderHousehold(); renderShareToggle(); loadHousehold();
-  loadNews(); loadRanking(); loadDiscordWidget(); loadFeed(); load311();
+  loadNews(); loadRanking(); loadDiscordWidget();
 })();

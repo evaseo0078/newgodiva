@@ -9,13 +9,13 @@ process.env.TEMP = cacheDirectory;
 process.env.TMP = cacheDirectory;
 process.env.UPSTASH_REDIS_REST_URL = "";
 process.env.UPSTASH_REDIS_REST_TOKEN = "";
-const names = ["chat", "discord", "gemini", "health", "meter-read", "news", "restrictions", "statcan"];
+const names = ["chat", "discord", "gemini", "health", "news", "restrictions", "statcan"];
 const handlers = new Map(await Promise.all(names.map(async name => [name, (await import(`../api/${name}.js`)).default])));
 function response() {
   return { code: null, payload: null, headers: {}, setHeader(key, value) { this.headers[key] = value; }, status(code) { this.code = code; return this; }, json(value) { this.payload = value; return this; } };
 }
 
-test("all eight existing API handlers remain importable as ES modules", () => {
+test("all seven existing API handlers remain importable as ES modules", () => {
   for (const [name, handler] of handlers) assert.equal(typeof handler, "function", name);
 });
 
@@ -23,7 +23,7 @@ test("guarded API handlers reject unsupported methods without external requests"
   const original = globalThis.fetch;
   globalThis.fetch = async () => { throw new Error("Unexpected external request"); };
   try {
-    for (const name of ["chat", "discord", "gemini", "meter-read", "restrictions"]) {
+    for (const name of ["chat", "discord", "gemini", "restrictions"]) {
       const output = response();
       await handlers.get(name)({ method: name === "restrictions" ? "POST" : "DELETE", query: {}, headers: {} }, output);
       assert.equal(output.code, 405, name);

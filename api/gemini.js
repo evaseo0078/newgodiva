@@ -35,7 +35,8 @@ export default async function handler(req, res) {
   if (!process.env.GEMINI_API_KEY) return res.status(503).json({ error: "GEMINI_API_KEY is not set" });
   try {
     const { image, prompt } = req.body || {};
-    if (!image) return res.status(400).json({ error: "image (base64) is required" });
+    if (!image || typeof image !== "string") return res.status(400).json({ error: "image (base64) is required" });
+    if (image.length > 4_000_000) return res.status(413).json({ error: "Image too large (max ~3 MB)" });
     return res.status(200).json({ text: await analyzeWaterMeter(image, prompt) });
   } catch (e) {
     return res.status(502).json({ error: "Gemini request failed" });
