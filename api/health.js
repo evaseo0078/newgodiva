@@ -5,8 +5,8 @@
 // Runs on the server so the browser isn't blocked by CORS, and caches for a day.
 
 const TIMEOUT_MS = 7000;
-const getJSON = async (url) => {
-  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+const getJSON = async (url, ms = TIMEOUT_MS) => {
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms);
   try {
     const r = await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" } });
     if (!r.ok) throw new Error(`${r.status}`);
@@ -32,15 +32,21 @@ async function sdg(series, area) {
   return pick ? { value: Math.round(Number(pick.value) * 10) / 10, year: Math.round(pick.timePeriodStart) } : null;
 }
 
-// Government of Canada open datasets (CKAN package_search).
+// Government of Canada open datasets (CKAN package_search). The portal can be slow, so we try both
+// documented API paths at once and use whichever answers first.
 async function canadaDatasets() {
-  const q = encodeURIComponent('"drinking water"');
-  const url = `https://open.canada.ca/data/en/api/3/action/package_search?q=${q}&rows=6&sort=metadata_modified%20desc`;
-  const res = (await getJSON(url)).result?.results || [];
-  return res.map((p) => ({
-    title: p.title_translated?.en || p.title,
-    org: p.organization?.title?.split("|")[0]?.trim() || "Government of Canada",
-    url: `https://open.canada.ca/data/en/dataset/${p.name}`,
+  const q = "q=" + encodeURIComponent("drinking water") + "&rows=8";
+  const urls = [
+    `https://open.canada.ca/data/en/api/3/action/package_search?${q}`,
+    `https://open.canada.ca/data/api/action/package_search?${q}`
+  ];
+  const json = await Promise.any(urls.map((u) => getJSON(u, 9000).then((j) => {
+    if (!j?.result?.results?.length) throw new Error("empty"); return j;
+  })));
+  return json.result.results.map((p) => ({
+    title: p.title_translated?.en || (typeof p.title === "string" ? p.title : ""),
+    org: (p.organization?.title || "Government of Canada").split("|")[0].trim(),
+    url: `https://open.canada.ca/data/en/dataset/${p.name || p.id}`,
     updated: (p.metadata_modified || "").slice(0, 10)
   })).filter((d) => d.title).slice(0, 5);
 }
@@ -64,6 +70,7 @@ export default async function handler(req, res) {
     else out.errors.push(keys[i]);
   });
   if (out.errors.length === keys.length) return res.status(502).json({ error: "Health data sources unavailable", errors: out.errors });
-  res.setHeader("Cache-Control", "s-maxage=86400, stale-while-revalidate=604800");
+  // Keep good results for a day; retry soon if a source failed.
+  res.setHeader("Cache-Control", out.errors.length ? "s-maxage=300" : "s-maxage=86400, stale-while-revalidate=604800");
   return res.status(200).json(out);
 }
